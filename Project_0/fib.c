@@ -79,10 +79,8 @@ static void
 doFib(int n, int doPrint)
 {
   //int n is the argument 
-
-  
-  pid_t pid;
-  pid = Fork();
+  pid_t childPID;
+  childPID = Fork();
 
 }
 
