@@ -80,8 +80,19 @@ doFib(int n, int doPrint)
 {
   //int n is the argument 
   pid_t childPID;
-  childPID = Fork();
-
+  switch (childPID = Fork())
+  {
+    case 0: //inside child process
+    {
+      n -= 1;
+      doFib(n, 0);
+      break;
+    }
+    default://inside parent process
+    {
+      
+    }
+  }
 }
 
 
