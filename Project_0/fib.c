@@ -93,7 +93,7 @@ doFib(int n, int doPrint)
 
       n -= 1;
 
-      exit(doFib(n, doPrint));
+      exit(n);//doFib(n, doPrint));
 
       break;
     }
@@ -104,7 +104,7 @@ doFib(int n, int doPrint)
       {
         if(WIFEXITED(status))
         {
-          
+          printf("status: %d\n", WEXITSTATUS(status));
         }
       }   
     }
