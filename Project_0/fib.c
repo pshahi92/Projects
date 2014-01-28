@@ -86,11 +86,12 @@ doFib(int n, int doPrint)
     {
       n -= 1;
       doFib(n, 0);
+
       break;
     }
     default://inside parent process
     {
-      
+      //we have to use the WEXITSTATUS here    
     }
   }
 }
