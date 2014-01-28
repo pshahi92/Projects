@@ -95,7 +95,7 @@ doFib(int n, int doPrint)
 
       n -= 1;
 
-      exit(n);//doFib(n, doPrint));
+      exit(doFib(n, doPrint));
 
       break;
     }
