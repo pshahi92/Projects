@@ -78,6 +78,10 @@ int main(int argc, char **argv)
 static void 
 doFib(int n, int doPrint)
 {
+  if(n == 0)
+    exit(EXIT_SUCCESS);
+  if(n == 1)
+    exit(EXIT_FAILURE);
   //int n is the argument 
   pid_t childPID;
   switch (childPID = Fork())
