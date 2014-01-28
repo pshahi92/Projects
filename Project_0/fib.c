@@ -88,36 +88,38 @@ doFib(int n, int doPrint)
     exit(0); //EXIT_SUCCESS);
   else if(n == 1)
     exit(1); //EXIT_FAILURE);
-
-  switch (childPID = Fork())
+  else if ((childPID = Fork()) == 0)
   {
-    case 0: //inside child process
-    {
-      n -= 1;
-      doFib(n, 0);
-      // return;
-      exit(n);        
-      break;
-    }   
-    default://inside parent process
-    {
+    //inside child process
 
-      //we have to use the WEXITSTATUS here 
-      if (doPrint)
-      {
-        while (pid = waitpid(-1, &status, 0) > 0)
-        {
-          if(WIFEXITED(status))
-          {
-            fib_total += WEXITSTATUS(status);
-          }
-        }   
-        printf("fib %d: %d\n", n, fib_total);
-      }
-    }
+    //calling F(n-1)
+    n -= 1;
+    doFib(n, 0);    
+
+    //calling F(n-2)
+    if((childPID = Fork()) == 0)
+    {
+      //inside second child
       n -= 2;
       doFib(n, 0);
+      // exit(n);
+    }
   }
+  else //inside parent process
+  {
+
+    //we have to use the WEXITSTATUS here 
+    if ((pid = waitpid(-1, &status, 0)) > 0)
+    {
+      if(WIFEXITED(status))
+      {
+        fib_total += WEXITSTATUS(status);
+          // exit(fib_total);
+      }
+    }
+  }
+  printf("fib %d: %d\n", n, fib_total);
+  exit(fib_total);
 }
 
 
