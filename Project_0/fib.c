@@ -86,6 +86,8 @@ doFib(int n, int doPrint)
   {
     case 0: //inside child process
     {
+
+      printf("%s\n", "child");
       if(n == 0)
         exit(0);//EXIT_SUCCESS);
       if(n == 1)
@@ -99,6 +101,7 @@ doFib(int n, int doPrint)
     }
     default://inside parent process
     {
+      printf("%s\n", "parent");
       //we have to use the WEXITSTATUS here 
       while (pid = waitpid(-1, &status, 0) > 0)
       {
