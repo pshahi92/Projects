@@ -14,7 +14,22 @@
 #include <errno.h>
 #include "util.h"
 
+/*********************************************/
+static pid_t Fork(void);
 
+/* 
+ * Section 8.3 of B+O
+ * error handling wrapper
+ */
+static pid_t 
+Fork(void)
+{
+  pid_t pid;
+  if ((pid = fork()) < 0)
+    unix_error("Fork error");
+  return pid;
+}
+/*********************************************/
 
 /* Global variables */
 int verbose = 0;            /* if true, print additional output */
@@ -25,7 +40,6 @@ static char prompt[] = "psh> ";    /* command line prompt (DO NOT CHANGE) */
 
 
 /* Function prototypes */
-
 /* Here are the functions that you will implement */
 void eval(char *cmdline);
 int builtin_cmd(char **argv);
@@ -33,6 +47,8 @@ int builtin_cmd(char **argv);
 /* Here are helper routines that we've provided for you */
 void usage(void);
 void sigquit_handler(int sig);
+
+
 
 
 
@@ -115,7 +131,7 @@ int main(int argc, char **argv)
     bg = parseline(buf, argv);
     if (argv[0] == NULL)
         return;  /* Ignore empty lines */
-    if (!builtin_command(argv)) {
+    if (!builtin_cmd(argv)) {
         if ((pid = Fork()) == 0) {  /* Child runs user job */
             if (execve(argv[0], argv, environ) < 0) {
                 printf("%s: Command not found.\n", argv[0]);
