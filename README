@@ -3,6 +3,8 @@ Spring 2014 Project Information
 ###################################################################
 ###################################################################
 Project 0: A Mini Shell
+http://www.cs.utexas.edu/~ans/classes/cs439/projects/shell_project/shell.html
 Objectives: Become familiar with shells, fork(), exec(), and signal
 Due: Feb 7
 Relative Weight: 10
+turnin -submit ccoleman shell_design design_doc.txt
