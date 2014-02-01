@@ -41,6 +41,13 @@ void sigint_handler(int sig);
 void usage(void);
 void sigquit_handler(int sig);
 
+/* routines that we've added */
+void Kill(pid_t group_pid, int sig)
+{
+    if((kill(group_pid, sig)) < 0)
+        unix_error("Kill error");
+}
+
 
 
 /*
@@ -123,6 +130,31 @@ int main(int argc, char **argv)
 */
 void eval(char *cmdline) 
 {
+    char *argv[MAXARGS]; /* Argument list execve() */
+    char buf[MAXLINE]; /* Holds modified command line */
+    int bg; /* Should the job run in bg or fg? */
+    pid_t pid; /* Process id */
+
+    strcpy(buf, cmdline);
+    bg = parseline(buf, argv);
+    if (argv[0] == NULL)
+        return;  /* Ignore empty lines */
+    if (!builtin_cmd(argv)) {
+        if ((pid = Fork()) == 0) {  /* Child runs user job */
+            if (execve(argv[0], argv, environ) < 0) {
+                printf("%s: Command not found.\n", argv[0]);
+                exit(0);
+            }
+        }
+        /* Parent waits for foreground job to terminate */
+        if (!bg) {
+            int status;
+            if (waitpid(pid, &status, 0) < 0)
+                unix_error("waitfg: waitpid error");
+        }
+        else
+            printf("%d %s", pid, cmdline);
+    }
     return;
 }
 
@@ -135,7 +167,12 @@ void eval(char *cmdline)
  */
 int builtin_cmd(char **argv) 
 {
-    return 0;     /* not a builtin command */
+    if (!strcmp(argv[0], "quit")) /* quit command */
+        exit(0);
+    else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
+        return;
+    if (!strcmp(argv[0], "&")) /* Ignore singleton & */
+        return 1;
 }
 
 /* 
@@ -177,7 +214,13 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    return;
+    //need to get pid of fg job
+    
+    pid_t groupID = getpgrp(); //process group ID of calling process
+
+    /* Parent sends a SIGINT signal to all children */
+    Kill(groupID, SIGINT);
+    exit(0);
 }
 
 /*
@@ -218,8 +261,13 @@ void usage(void)
  */
 void sigquit_handler(int sig) 
 {
-    printf("Terminating after receipt of SIGQUIT signal\n");
-    exit(1);
+    ssize_t bytes; 
+    const int STDOUT = 1;
+    if (sig == SIGQUIT)
+    {
+        bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 44);
+        exit(1);
+    }
 }
 
 
