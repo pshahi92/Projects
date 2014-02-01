@@ -17,8 +17,34 @@
  * Finally, loop forever, printing "Still here\n" once every
  * second.
  */
+
+ void handler(int sig)
+ {
+ 	ssize_t bytes; 
+ 	const int STDOUT = 1; 
+ 	bytes = write(STDOUT, "Nice try.\n", 10); 
+ 	if(bytes != 10) 
+ 		exit(-999);
+ }
+
 int main(int argc, char **argv)
 {
+	//signal handler
+	Signal(SIGINT, handler);
+	
+	//print pid
+	pid_t pid = getpid();
+	int size = sizeof(pid);
+	printf("%d\n", size);
+
+	//print "Still here\n"
+	int i = 1;
+	struct timespec t = {3, 0};
+	while(i) 
+	{
+		printf("Still here\n");
+		nanosleep(&t, NULL);
+	}
   return 0;
 }
 
