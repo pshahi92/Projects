@@ -194,8 +194,13 @@ void usage(void)
  */
 void sigquit_handler(int sig) 
 {
-    printf("Terminating after receipt of SIGQUIT signal\n");
-    exit(1);
+    ssize_t bytes; 
+    const int STDOUT = 1;
+    if (sig == SIGQUIT)
+    {
+        bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 44);
+        exit(1);
+    }
 }
 
 
