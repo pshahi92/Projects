@@ -22,16 +22,25 @@
  void handler(int sig)
  {
  	ssize_t bytes; 
- 	const int STDOUT = 1; 
- 	bytes = write(STDOUT, "exiting\n", 10); 
- 	if(bytes != 10) 
+ 	const int STDOUT = 1;
+ 	if (sig == SIGUSR1)
+ 	{
+ 		bytes = write(STDOUT, "exiting\n", 8);
+ 		exit(1);
+ 	}
+ 	else if (sig == SIGINT)
+ 	{ 
+ 		bytes = write(STDOUT, "Nice try.\n", 10);
+ 		return;
+ 	}
+ 	else if(bytes != 10)
  		exit(-999);
- 	exit(1);
  }
 
 int main(int argc, char **argv)
 {
 	//signal handler
+	Signal(SIGINT, handler);
 	Signal(SIGUSR1, handler);
 
 	//print pid
