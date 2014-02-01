@@ -7,15 +7,19 @@
 #include <time.h>
 #include <unistd.h>
 
-
+//Abe driving
+//get the argument from command line
+//and send signal using kill
 int main(int argc, char **argv)
 {
 	if(argc > 0) {
-		printf("hello\n");
 		int pid = atoi(argv[1]);
 		kill(pid, SIGUSR1);
+		printf("exiting\n");
 	}
   return 0;
 }
+
+
 
 
