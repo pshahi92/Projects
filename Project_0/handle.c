@@ -18,24 +18,25 @@
  * second.
  */
 
+//helper function to handle single
  void handler(int sig)
  {
  	ssize_t bytes; 
  	const int STDOUT = 1; 
- 	bytes = write(STDOUT, "Nice try.\n", 10); 
+ 	bytes = write(STDOUT, "exiting\n", 10); 
  	if(bytes != 10) 
  		exit(-999);
+ 	exit(1);
  }
 
 int main(int argc, char **argv)
 {
 	//signal handler
-	Signal(SIGINT, handler);
-	
+	Signal(SIGUSR1, handler);
+
 	//print pid
 	pid_t pid = getpid();
-	int size = sizeof(pid);
-	printf("%d\n", size);
+	printf("%d\n", pid);
 
 	//print "Still here\n"
 	int i = 1;
