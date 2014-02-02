@@ -69,7 +69,7 @@ void Setpgid(pid_t pid, pid_t pgid)
 
 void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-    if(sigprocmask(how, *set, *oldset) < 0)
+    if(sigprocmask(how, set, oldset) < 0)
         unix_error("Sigprocmask error");
 }
 /* ************************* */
@@ -84,9 +84,6 @@ void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
     char c;
     char cmdline[MAXLINE];
     int emit_prompt = 1; /* emit prompt (default) */
-
-    /* what we've added*/
-    sigset_t mask; /* for Sigprocmask*/
 
     /* Redirect stderr to stdout (so that driver will get all output
      * on the pipe connected to stdout) */
@@ -161,42 +158,62 @@ void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
  * background children don't receive SIGINT (SIGTSTP) from the kernel
  * when we type ctrl-c (ctrl-z) at the keyboard.  
 */
- void eval(char *cmdline) 
- {
+void eval(char *cmdline) 
+{
     char *argv[MAXARGS]; /* Argument list execve() */
     char buf[MAXLINE]; /* Holds modified command line */
     int bg; /* Should the job run in bg or fg? */
     pid_t pid; /* Process id */
+    pid_t childPID; /* PID of child */
+
+    /* what we've added*/
+    sigset_t mask; /* for Sigprocmask*/
+    /* *************** */
 
     strcpy(buf, cmdline);
     bg = parseline(buf, argv);
+
     if (argv[0] == NULL)
         return;  /* Ignore empty lines */
-        if (!builtin_cmd(argv)) 
+    if (!builtin_cmd(argv)) 
+    {
+        /* Blocking signals to eliminate race condition */
+        Sigemptyset(&mask);
+        Sigaddset(&mask, SIGCHLD);
+        Sigprocmask(SIG_BLOCK, &mask, NULL); /* Block SIG_CHLD */
+
+        if ((pid = Fork()) == 0) 
         {
-            if ((pid = Fork()) == 0) 
-            {  
+            Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
+
             /* putting child in new process group, pgid == child pid */
-                Setpgid(0,0);
+            Setpgid(0,0);
+
+            childPID = getpid();
 
             /* Child runs user job */
-                if (execve(argv[0], argv, environ) < 0) 
-                {
-                    printf("%s: Command not found.\n", argv[0]);
-                    exit(0);
-                }
+            if (execve(argv[0], argv, environ) < 0) 
+            {
+                printf("%s: Command not found.\n", argv[0]);
+                exit(0);
             }
-            /* Parent waits for foreground job to terminate */
-            if (!bg) {
-                int status;
-                if (waitpid(pid, &status, 0) < 0)
-                    unix_error("waitfg: waitpid error");
-            }
-            else
-                printf("%d %s", pid, cmdline);
         }
-        return;
+
+        addjob(jobs, childPID, bg, cmdline); /* adding the child to job array */
+        Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
+
+        /* Parent waits for foreground job to terminate */
+        if (!bg) 
+        {
+            int status;
+            if (waitpid(pid, &status, 0) < 0)
+                unix_error("waitfg: waitpid error");
+        }
+        else
+            printf("%d %s", pid, cmdline);
     }
+    return;
+}
 
 
 /* 
