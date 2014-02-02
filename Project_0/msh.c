@@ -52,12 +52,12 @@ void Kill(pid_t group_pid, int sig)
  * Section 8.3 of B+O
  * error handling wrapper
  */
-pid_t Fork(void)
+ pid_t Fork(void)
 {
-  pid_t pid;
-  if ((pid = fork()) < 0)
-    unix_error("Fork error");
-  return pid;
+    pid_t pid;
+    if ((pid = fork()) < 0)
+        unix_error("Fork error");
+    return pid;
 }
 
 /* error handling wrapper for setp*/
@@ -79,31 +79,36 @@ void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 /*
  * main - The shell's main routine 
  */
-int main(int argc, char **argv) 
-{
+ int main(int argc, char **argv) 
+ {
     char c;
     char cmdline[MAXLINE];
     int emit_prompt = 1; /* emit prompt (default) */
+
+    /* what we've added*/
+    sigset_t mask; /* for Sigprocmask*/
 
     /* Redirect stderr to stdout (so that driver will get all output
      * on the pipe connected to stdout) */
     dup2(1, 2);
 
     /* Parse the command line */
-    while ((c = getopt(argc, argv, "hvp")) != EOF) {
-        switch (c) {
-        case 'h':             /* print help message */
-            usage();
-	    break;
-        case 'v':             /* emit additional diagnostic info */
-            verbose = 1;
-	    break;
-        case 'p':             /* don't print a prompt */
-            emit_prompt = 0;  /* handy for automatic testing */
-	    break;
-	default:
-            usage();
-	}
+    while ((c = getopt(argc, argv, "hvp")) != EOF) 
+    {
+        switch (c) 
+        {
+            case 'h':             /* print help message */
+                usage();
+                break;
+            case 'v':             /* emit additional diagnostic info */
+                verbose = 1;
+                break;
+            case 'p':             /* don't print a prompt */
+                emit_prompt = 0;  /* handy for automatic testing */
+                break;
+            default:
+                usage();
+        }
     }
 
     /* Install the signal handlers */
@@ -120,29 +125,31 @@ int main(int argc, char **argv)
     initjobs(jobs);
 
     /* Execute the shell's read/eval loop */
-    while (1) {
+    while (1) 
+    {
+    	/* Read command line */
+    	if (emit_prompt) 
+        {
+           printf("%s", prompt);
+           fflush(stdout);
+        }
+        if ((fgets(cmdline, MAXLINE, stdin) == NULL) && ferror(stdin))
+           app_error("fgets error");
+    	if (feof(stdin)) 
+        {   /* End of file (ctrl-d) */
+            fflush(stdout);
+            exit(0);
+        }
 
-	/* Read command line */
-	if (emit_prompt) {
-	    printf("%s", prompt);
-	    fflush(stdout);
-	}
-	if ((fgets(cmdline, MAXLINE, stdin) == NULL) && ferror(stdin))
-	    app_error("fgets error");
-	if (feof(stdin)) { /* End of file (ctrl-d) */
-	    fflush(stdout);
-	    exit(0);
-	}
-
-	/* Evaluate the command line */
-	eval(cmdline);
-	fflush(stdout);
-	fflush(stdout);
+        /* Evaluate the command line */
+        eval(cmdline);
+        fflush(stdout);
+        fflush(stdout);
     } 
 
     exit(0); /* control never reaches here */
 }
-  
+
 /* 
  * eval - Evaluate the command line that the user has just typed in
  * 
@@ -154,8 +161,8 @@ int main(int argc, char **argv)
  * background children don't receive SIGINT (SIGTSTP) from the kernel
  * when we type ctrl-c (ctrl-z) at the keyboard.  
 */
-void eval(char *cmdline) 
-{
+ void eval(char *cmdline) 
+ {
     char *argv[MAXARGS]; /* Argument list execve() */
     char buf[MAXLINE]; /* Holds modified command line */
     int bg; /* Should the job run in bg or fg? */
@@ -165,32 +172,31 @@ void eval(char *cmdline)
     bg = parseline(buf, argv);
     if (argv[0] == NULL)
         return;  /* Ignore empty lines */
-    if (!builtin_cmd(argv)) 
-    {
-        if ((pid = Fork()) == 0) 
-        {  
-            //Sigprocmask(SIG_BLOCK, ,);
-
+        if (!builtin_cmd(argv)) 
+        {
+            if ((pid = Fork()) == 0) 
+            {  
             /* putting child in new process group, pgid == child pid */
-            Setpgid(0,0);
+                Setpgid(0,0);
+
             /* Child runs user job */
-            if (execve(argv[0], argv, environ) < 0) 
-            {
-                printf("%s: Command not found.\n", argv[0]);
-                exit(0);
+                if (execve(argv[0], argv, environ) < 0) 
+                {
+                    printf("%s: Command not found.\n", argv[0]);
+                    exit(0);
+                }
             }
+            /* Parent waits for foreground job to terminate */
+            if (!bg) {
+                int status;
+                if (waitpid(pid, &status, 0) < 0)
+                    unix_error("waitfg: waitpid error");
+            }
+            else
+                printf("%d %s", pid, cmdline);
         }
-        /* Parent waits for foreground job to terminate */
-        if (!bg) {
-            int status;
-            if (waitpid(pid, &status, 0) < 0)
-                unix_error("waitfg: waitpid error");
-        }
-        else
-            printf("%d %s", pid, cmdline);
+        return;
     }
-    return;
-}
 
 
 /* 
@@ -199,8 +205,8 @@ void eval(char *cmdline)
  * Return 1 if a builtin command was executed; return 0
  * if the argument passed in is *not* a builtin command.
  */
-int builtin_cmd(char **argv) 
-{
+ int builtin_cmd(char **argv) 
+ {
     if (!strcmp(argv[0], "quit")) /* quit command */
         exit(0);
     else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
