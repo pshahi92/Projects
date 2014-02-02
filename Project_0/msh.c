@@ -59,6 +59,20 @@ pid_t Fork(void)
     unix_error("Fork error");
   return pid;
 }
+
+/* error handling wrapper for setp*/
+void Setpgid(pid_t pid, pid_t pgid)
+{
+    if((setpgid(pid, pgid)) < 0)
+        unix_error("Setpgid error");
+}
+
+void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+    if(sigprocmask(how, *set, *oldset) < 0)
+        unix_error("Sigprocmask error");
+}
+/* ************************* */
 /* ************************* */
 
 
@@ -151,9 +165,33 @@ void eval(char *cmdline)
     bg = parseline(buf, argv);
     if (argv[0] == NULL)
         return;  /* Ignore empty lines */
-    if (!builtin_cmd(argv)) {
-        if ((pid = Fork()) == 0) {  /* Child runs user job */
-            if (execve(argv[0], argv, environ) < 0) {
+    if (!builtin_cmd(argv)) 
+    {
+        if ((pid = Fork()) == 0) 
+        {  
+            /* parent must use sigprocmask to block SIGCHLD signals before 
+            it forks the child, and then unblock these signals, again using sigprocmask,
+            after it uses addjob to add the child to the job list.
+            since children inherit the blocked vectors of their parents, the child
+            must be sure to then unblock SIGCHLD signals before it execs the new program
+
+            parent needs to block  */
+
+            //Sigprocmask(SIG_BLOCK, ,);
+            //pg 757
+            //http://pic.dhe.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.bpxbd00%2Frttcgp.htm
+            //http://pic.dhe.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.bpxbd00%2Fgpgid.htm
+            //http://man7.org/linux/man-pages/man2/sigprocmask.2.html
+//             everytime tyou fork you have to add to jobs (array of jobs struct)
+// everytime you kill something you ahve to remove it from the struct from the array
+
+
+
+            /* putting child in new process group, pgid == child pid */
+            Setpgid(0,0);
+            /* Child runs user job */
+            if (execve(argv[0], argv, environ) < 0) 
+            {
                 printf("%s: Command not found.\n", argv[0]);
                 exit(0);
             }
@@ -183,6 +221,15 @@ int builtin_cmd(char **argv)
         exit(0);
     else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
         return 0;
+    else if(!strcmp(argv[0], "fg")) /* fg command */
+        return 0;
+    else if(!strcmp(argv[0], "bg")) /* bg command */
+    /* bg <job> command restarts <job> by sending it a SIGCONT signal
+    then runs it in the background. The job argument can either be PID or JID */
+    {
+       // kill(SIGCONT, pid_t);
+        return 0;
+    }
     else if (!strcmp(argv[0], "&")) /* Ignore singleton & */
         return 1;
     return 0;
@@ -228,11 +275,10 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) 
 {
     //need to get pid of fg job
-    
     pid_t groupID = getpgrp(); //process group ID of calling process
-
     /* Parent sends a SIGINT signal to all children */
-    Kill(groupID, SIGINT);
+    printf("%d\n", groupID );
+    Kill(-groupID, SIGINT);
     exit(0);
 }
 
