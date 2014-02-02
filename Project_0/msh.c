@@ -169,23 +169,7 @@ void eval(char *cmdline)
     {
         if ((pid = Fork()) == 0) 
         {  
-            /* parent must use sigprocmask to block SIGCHLD signals before 
-            it forks the child, and then unblock these signals, again using sigprocmask,
-            after it uses addjob to add the child to the job list.
-            since children inherit the blocked vectors of their parents, the child
-            must be sure to then unblock SIGCHLD signals before it execs the new program
-
-            parent needs to block  */
-
             //Sigprocmask(SIG_BLOCK, ,);
-            //pg 757
-            //http://pic.dhe.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.bpxbd00%2Frttcgp.htm
-            //http://pic.dhe.ibm.com/infocenter/zos/v1r12/index.jsp?topic=%2Fcom.ibm.zos.r12.bpxbd00%2Fgpgid.htm
-            //http://man7.org/linux/man-pages/man2/sigprocmask.2.html
-//             everytime tyou fork you have to add to jobs (array of jobs struct)
-// everytime you kill something you ahve to remove it from the struct from the array
-
-
 
             /* putting child in new process group, pgid == child pid */
             Setpgid(0,0);
