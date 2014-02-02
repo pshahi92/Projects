@@ -72,15 +72,32 @@ Questions regarding Part 1
 (1) In the provided utility function Signal(), what does the call to
   sigaction() do?  Why was sigaction() used instead of signal()?
 
+The sigaction() system call is used to change the action taken by a
+process on receipt of a specific signal. Sigaction() was used instead of signal() because it is a lot more portable. The only portable use of signal() is to set a signal's disposition to SIG_DFL or SIG_IGN. The semantics when using signal() to establish a signal handler vary across systems, while sigaction() provides explicit control of the semantics when a signal handler is invoked. 
+
 (2) What is the last assembly language instruction executed by the
   signal handler function that you write?
+
+0x00000000004009d2 <+129>:  callq  0x400bc0 <Signal>
 
 (3) After the instruction identified in the previous question executes, 
   what is the next assembly language instruction executed?
 
+  0x00000000004009d7 <+134>:  mov    $0x0,%eax
+
 (4) When the signal handler finishes running, it must restore all of
   the registers from the interrupted thread to exactly their values
   before the signal occurred. How is this done?
+
+  From http://www.netbsd.org/docs/internals/en/chap-processes.html:
+
+  First method, using the kernel-provided signal trampoline: sendsig have copied the signal trampoline on the stack and has prepared the stack and/or CPU registers so that the signal handler returns to the signal trampoline. The job of the signal trampoline is to call the sigreturn or the setcontext system calls, handling a pointer to the CPU registers saved on stack. This restores the CPU registers to their values before the signal handler invocation, and next time the process will return to userland, it will resume its execution where it stopped.
+
+  The native signal trampoline for i386 is called sigcode and can be found in src/sys/arch/i386/i386/locore.S. Each emulated ABI has its own signal trampoline, which can be quite close to the native one, except usually for the sigreturn system call number.
+
+  The second method is to use a signal trampoline provided by libc. This is how modern NetBSD native programs do. At the time the sigaction system call is invoked, the libc stub handle a pointer to a signal trampoline in libc, which is in charge of calling setcontext.
+
+  sendsig will use that pointer as the return address for the signal handler. This method is better than the previous one, because it removes the need for an executable stack page where the signal trampoline is stored. The trampoline is now stored in the code segment of libc. For instance, for i386, the signal trampoline is named __sigtramp_siginfo_2 and can be found in src/lib/libc/arch/i386/sys/__sigtramp2.S.
 
 
 ################
