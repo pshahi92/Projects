@@ -196,12 +196,8 @@ void sigquit_handler(int sig)
 {
     ssize_t bytes; 
     const int STDOUT = 1;
-    if (sig == SIGQUIT)
-    {
-        bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 44);
-        exit(1);
-    }
+    bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 44);
+    if(bytes != 44) 
+        exit(-999);
+    exit(0);
 }
-
-
-

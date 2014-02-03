@@ -26,7 +26,7 @@
  	if (sig == SIGUSR1)
  	{
  		bytes = write(STDOUT, "exiting\n", 8);
- 		exit(1);
+ 		exit(0);
  	}
  	else if (sig == SIGINT)
  	{ 
