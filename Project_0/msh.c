@@ -178,8 +178,8 @@ void eval(char *cmdline)
     if (!builtin_cmd(argv)) 
     {
         /* Blocking signals to eliminate race condition */
-        Sigemptyset(&mask);
-        Sigaddset(&mask, SIGCHLD);
+        sigemptyset(&mask);
+        sigaddset(&mask, SIGCHLD);
         Sigprocmask(SIG_BLOCK, &mask, NULL); /* Block SIG_CHLD */
 
         if ((pid = Fork()) == 0) 
@@ -227,9 +227,14 @@ void eval(char *cmdline)
     if (!strcmp(argv[0], "quit")) /* quit command */
         exit(0);
     else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
-        return 0;
+        {
+            listjobs(jobs);
+            exit(1);
+        }
     else if(!strcmp(argv[0], "fg")) /* fg command */
-        return 0;
+        {
+
+        }
     else if(!strcmp(argv[0], "bg")) /* bg command */
     /* bg <job> command restarts <job> by sending it a SIGCONT signal
     then runs it in the background. The job argument can either be PID or JID */
@@ -282,11 +287,10 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) 
 {
     //need to get pid of fg job
-    pid_t groupID = getpgrp(); //process group ID of calling process
-    /* Parent sends a SIGINT signal to all children */
-    printf("%d\n", groupID );
-    Kill(-groupID, SIGINT);
-    exit(0);
+    pid_t fg_job = fgpid(jobs);
+    if(fg_job)
+        Kill(-fg_job, sig);
+    return;
 }
 
 /*
@@ -296,6 +300,10 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
+    //need to get pid of fg job
+    pid_t fg_job = fgpid(jobs);
+    if(fg_job)
+        Kill(-fg_job, sig);
     return;
 }
 
@@ -329,9 +337,8 @@ void sigquit_handler(int sig)
 {
     ssize_t bytes; 
     const int STDOUT = 1;
-    bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 10);
-    exit(1);
+    bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 44);
+    if(bytes != 44) 
+        exit(-999);
+    exit(0);
 }
-
-
-
