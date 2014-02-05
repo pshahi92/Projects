@@ -72,6 +72,10 @@ void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
     if(sigprocmask(how, set, oldset) < 0)
         unix_error("Sigprocmask error");
 }
+
+/* Print a Job, code taken from listjobs in jobs.c */
+void printJob(pid_t pid);
+
 /* ************************* */
 /* ************************* */
 
@@ -197,25 +201,24 @@ void eval(char *cmdline)
             }
         }
 
-
         if(bg) /* Checking BG or FG */
         {    
             addjob(jobs, pid, BG, cmdline); /* adding the child to job array as BG */
-                    Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
-
+            Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
+            printJob(pid); /* printing bg job to msh cmdline */
         }
         else
         {
             addjob(jobs, pid, FG, cmdline); /* adding the child to job array as FG */
-                    Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
+            Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
 
             int status;
-            
             if (waitpid(pid, &status, 0) < 0)
                 unix_error("waitfg: waitpid error");
-            //else
-            {
-                //deletejob(jobs, fgpid(jobs));
+            else
+            {   
+
+                deletejob(jobs, fgpid(jobs));
             }
         }
 
@@ -234,7 +237,7 @@ void eval(char *cmdline)
  {
     if (!strcmp(argv[0], "quit")) /* quit command */
         exit(0);
-    if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
+    else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
     {
         listjobs(jobs);
         return 1;
@@ -358,4 +361,27 @@ void sigquit_handler(int sig)
     if(bytes != 44) 
         exit(-999);
     exit(0);
+}
+
+void printJob(pid_t pid)
+{
+    struct job_t* jobToPrint = getjobpid(jobs, pid);
+    
+    printf("[%d] (%d) ", jobToPrint->jid, jobToPrint->pid);
+    switch (jobToPrint->state) 
+    {
+        case BG: 
+            printf("Running ");
+            break;
+        case FG: 
+            printf("Foreground ");
+            break;
+        case ST: 
+            printf("Stopped ");
+            break;
+        default:
+            printf("listjobs: Internal error: job[%d].state=%d ", 
+               0, jobToPrint->state);
+    }
+    printf("%s", jobToPrint->cmdline);
 }
