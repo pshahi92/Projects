@@ -308,7 +308,11 @@ void sigint_handler(int sig)
     //need to get pid of fg job
     pid_t fg_job = fgpid(jobs);
     if(fg_job)
+    {
         Kill(-fg_job, sig);
+        struct job_t* delJob = getjobpid(jobs, fg_job);
+        printf("Job [%d] (%d) terminated by signal %d\n", delJob->jid, delJob->pid, sig);
+    }
     deletejob(jobs, fg_job);
     return;
 }
@@ -323,7 +327,11 @@ void sigtstp_handler(int sig)
     //need to get pid of fg job
     pid_t fg_job = fgpid(jobs);
     if(fg_job)
+    {
         Kill(-fg_job, sig);
+        struct job_t* delJob = getjobpid(jobs, fg_job);
+        printf("Job [%d] (%d) stopped by signal %d\n", delJob->jid, delJob->pid, sig);
+    }
     return;
 }
 
