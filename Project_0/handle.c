@@ -47,13 +47,23 @@ int main(int argc, char **argv)
 	pid_t pid = getpid();
 	printf("%d\n", pid);
 
-	//print "Still here\n"
 	int i = 1;
-	struct timespec t = {3, 0};
+	struct timespec t = {1, 0};
+	struct timespec r = {0,0};
 	while(i) 
 	{
 		printf("Still here\n");
-		nanosleep(&t, NULL);
+		while(nanosleep(&t, &r)) 
+		{
+			t.tv_sec = r.tv_sec;
+			t.tv_nsec = r.tv_nsec;
+			r.tv_sec = 0;
+			r.tv_nsec = 0;
+		}
+			t.tv_sec = 1;
+			t.tv_nsec = 0;
+			r.tv_sec = 0;
+			r.tv_nsec = 0;
 	}
   return 0;
 }
