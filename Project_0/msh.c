@@ -188,6 +188,7 @@ void eval(char *cmdline)
         pid = Fork();
         if ( pid == 0) 
         {
+            /* Child Process */
             Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
 
             /* putting child in new process group, pgid == child pid */
@@ -221,11 +222,11 @@ void eval(char *cmdline)
                 //keep checking until pid isnt fg rpocces
             //move this busy loop to move fg
             //but its ineffective and do a more effective call with sleep
-                while(fgpid(jobs) == pid)
-                {
-                    ;
-                }
-
+                // while(fgpid(jobs) == pid)
+                // {
+                //     ;
+                // }
+            waitfg(pid);
                 // unix_error("waitfg: waitpid error");
             // }
             // else
@@ -284,6 +285,10 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
+    while(fgpid(jobs) == pid)
+    {
+        ;
+    }
     return;
 }
 
@@ -304,24 +309,22 @@ void sigchld_handler(int sig)
     int status;
     while ((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
     {
-
         if(WIFSTOPPED(status))
         {
-            printf(" 3.0 Job\n");
-
             pid_t fg_job = fgpid(jobs);
             struct job_t* stpJob = getjobpid(jobs, fg_job);
             stpJob->state = ST;
-
-            printf(" 2.0 Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
+            printf("Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
             return;
         }
         else if (WIFSIGNALED(status))
         {
+            deletejob(jobs, pid);
             return;
         }
         else //WIFEXITED 
         {
+            deletejob(jobs, pid);
             return;
         }
     }
