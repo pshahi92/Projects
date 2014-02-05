@@ -164,7 +164,6 @@ void eval(char *cmdline)
     char buf[MAXLINE]; /* Holds modified command line */
     int bg; /* Should the job run in bg or fg? */
     pid_t pid; /* Process id */
-    pid_t childPID; /* PID of child */
 
     /* what we've added*/
     sigset_t mask; /* for Sigprocmask*/
@@ -182,15 +181,13 @@ void eval(char *cmdline)
         sigaddset(&mask, SIGCHLD);
         Sigprocmask(SIG_BLOCK, &mask, NULL); /* Block SIG_CHLD */
 
-        if ((pid = Fork()) == 0) 
+        pid = Fork();
+        if ( pid == 0) 
         {
             Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
 
             /* putting child in new process group, pgid == child pid */
             Setpgid(0,0);
-
-            childPID = getpid();
-            addjob(jobs, childPID, bg, cmdline); /* adding the child to job array */
 
             /* Child runs user job */
             if (execve(argv[0], argv, environ) < 0) 
@@ -200,25 +197,28 @@ void eval(char *cmdline)
             }
         }
 
-        Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
 
-        /* Parent waits for foreground job to terminate */
-        if (!bg) 
-        {
-            int status;
-            if (waitpid(pid, &status, 0) < 0)
-                unix_error("waitfg: waitpid error");
-            else
-            {
-                deletejob(jobs, fgpid(jobs));
-            }
+        if(bg) /* Checking BG or FG */
+        {    
+            addjob(jobs, pid, BG, cmdline); /* adding the child to job array as BG */
+                    Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
+
         }
         else
         {
-            printf("%d %s", pid, cmdline);
-            printf("%d %s", pid2jid(jobs, pid) , cmdline);
+            addjob(jobs, pid, FG, cmdline); /* adding the child to job array as FG */
+                    Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
 
+            int status;
+            
+            if (waitpid(pid, &status, 0) < 0)
+                unix_error("waitfg: waitpid error");
+            //else
+            {
+                //deletejob(jobs, fgpid(jobs));
+            }
         }
+
     }
     return;
 }
@@ -234,15 +234,15 @@ void eval(char *cmdline)
  {
     if (!strcmp(argv[0], "quit")) /* quit command */
         exit(0);
-    else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
-        {
-            listjobs(jobs);
-            exit(1);
-        }
+    if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
+    {
+        listjobs(jobs);
+        return 1;
+    }
     else if(!strcmp(argv[0], "fg")) /* fg command */
-        {
+    {
 
-        }
+    }
     else if(!strcmp(argv[0], "bg")) /* bg command */
     /* bg <job> command restarts <job> by sending it a SIGCONT signal
     then runs it in the background. The job argument can either be PID or JID */
@@ -306,6 +306,7 @@ void sigint_handler(int sig)
     pid_t fg_job = fgpid(jobs);
     if(fg_job)
         Kill(-fg_job, sig);
+    deletejob(jobs, fg_job);
     return;
 }
 
