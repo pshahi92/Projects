@@ -190,6 +190,7 @@ void eval(char *cmdline)
             Setpgid(0,0);
 
             childPID = getpid();
+            addjob(jobs, childPID, bg, cmdline); /* adding the child to job array */
 
             /* Child runs user job */
             if (execve(argv[0], argv, environ) < 0) 
@@ -199,7 +200,6 @@ void eval(char *cmdline)
             }
         }
 
-        addjob(jobs, childPID, bg, cmdline); /* adding the child to job array */
         Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
 
         /* Parent waits for foreground job to terminate */
@@ -208,9 +208,17 @@ void eval(char *cmdline)
             int status;
             if (waitpid(pid, &status, 0) < 0)
                 unix_error("waitfg: waitpid error");
+            else
+            {
+                deletejob(jobs, fgpid(jobs));
+            }
         }
         else
+        {
             printf("%d %s", pid, cmdline);
+            printf("%d %s", pid2jid(jobs, pid) , cmdline);
+
+        }
     }
     return;
 }
@@ -276,7 +284,15 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
-    return;
+    pid_t pid;
+    int status;
+    while ((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
+    {
+        if(WIFSTOPPED(status))
+        {
+            
+        } 
+    }
 }
 
 /* 
