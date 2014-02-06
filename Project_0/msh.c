@@ -261,6 +261,7 @@ void do_bgfg(char **argv)
         if (fgJob->state == ST)
             Kill(-(fgJob->pid), SIGCONT);
         fgJob->state = FG;
+        waitfg(fgJob->pid);
     }
 }
 
