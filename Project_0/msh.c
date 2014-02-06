@@ -256,16 +256,10 @@ void eval(char *cmdline)
         listjobs(jobs);
         return 1;
     }
-    else if(!strcmp(argv[0], "fg")) /* fg command */
+    else if((!strcmp(argv[0], "fg")) || (!strcmp(argv[0], "bg"))) /* fg/bg command */
     {
-
-    }
-    else if(!strcmp(argv[0], "bg")) /* bg command */
-    /* bg <job> command restarts <job> by sending it a SIGCONT signal
-    then runs it in the background. The job argument can either be PID or JID */
-    {
-       // kill(SIGCONT, pid_t);
-        return 0;
+        do_bgfg(argv);
+        return 1;
     }
     else if (!strcmp(argv[0], "&")) /* Ignore singleton & */
         return 1;
@@ -277,8 +271,27 @@ void eval(char *cmdline)
  */
 void do_bgfg(char **argv) 
 {
-    return;
+    if (!strcmp(argv[0], "bg"))
+    {
+        int jid = atoi(argv[1]+1);
+        struct job_t* bgJob = getjobjid(jobs, jid);
+        bgJob->state = BG;
+        Kill(-(bgJob->pid), SIGCONT);
+        printJob(bgJob->pid);
+    }
+    else if(!strcmp(argv[0], "fg"))
+    {
+        int bgpid = atoi(argv[1]+1);
+        struct job_t* fgJob = getjobjid(jobs, bgpid);
+        if (fgJob->state == ST)
+            Kill(-(fgJob->pid), SIGCONT);
+        fgJob->state = FG;
+        // printf("%s", "Job ");
+        // printJob(fgJob->pid);
+    }
 }
+
+
 
 /* 
  * waitfg - Block until process pid is no longer the foreground process
@@ -319,11 +332,13 @@ void sigchld_handler(int sig)
         }
         else if (WIFSIGNALED(status))
         {
+            // printf("%s\n","ifsignaled" );
             deletejob(jobs, pid);
             return;
         }
         else //WIFEXITED 
         {
+            // printf("%s\n", "ifexited");
             deletejob(jobs, pid);
             return;
         }
@@ -414,10 +429,10 @@ void printJob(pid_t pid)
     switch (jobToPrint->state) 
     {
         case BG: 
-            printf("Running ");
+            //printf("Running ");
             break;
         case FG: 
-            printf("Foreground ");
+            //printf("Foreground ");
             break;
         case ST: 
             printf("Stopped ");
