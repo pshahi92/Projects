@@ -7,9 +7,9 @@
 #include <time.h>
 #include <unistd.h>
 
+/*Get the argument from command line
+and send signal using kill. */
 //Abe driving
-//get the argument from command line
-//and send signal using kill
 int main(int argc, char **argv)
 {
 	if(argc > 0) {
