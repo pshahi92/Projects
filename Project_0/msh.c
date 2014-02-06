@@ -321,7 +321,7 @@ void sigchld_handler(int sig)
             bytes = write(STDOUT, ") stopped by signal ", 20);
             if(bytes != 20)
                 exit(-999);
-            
+
             printf("%d", WSTOPSIG(status));
             fflush(stdout);
 
@@ -329,15 +329,18 @@ void sigchld_handler(int sig)
             if(bytes != 1)
                 exit(-999);
 
+            // printf("%s\n", "stopped");
             return;
         }
-        else if (WIFSIGNALED(status))
+        if (WIFSIGNALED(status))
         {
+            // printf("%s\n", "signaled" );
             deletejob(jobs, pid);
             return;
         }
         else //WIFEXITED 
         {
+            // printf("%s\n", "exited" );
             deletejob(jobs, pid);
             return;
         }
