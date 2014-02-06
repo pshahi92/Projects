@@ -305,15 +305,30 @@ void sigchld_handler(int sig)
             const int STDOUT = 1;
 
             bytes = write(STDOUT, "Jobs [", 6);
-            bytes = write(STDOUT, &(stpJob->jid), sizeof(stpJob->jid));
+            if(bytes != 6)
+                exit(-999);
+
+            printf("%d", stpJob->jid);
+            fflush(stdout);
+
             bytes = write(STDOUT, "] (", 3);
-            bytes = write(STDOUT, &(stpJob->pid), sizeof(stpJob->pid));
+            if(bytes != 3)
+                exit(-999);
+
+            printf("%d", stpJob->pid);
+            fflush(stdout);
+
             bytes = write(STDOUT, ") stopped by signal ", 20);
-            bytes = write(STDOUT, &(WSTOPSIG(status)), sizeof(WSTOPSIG(status)));
+            if(bytes != 20)
+                exit(-999);
+            
+            printf("%d", WSTOPSIG(status));
+            fflush(stdout);
+
             bytes = write(STDOUT, "\n", 1);
+            if(bytes != 1)
+                exit(-999);
 
-
-            //sprintf(str, "Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
             return;
         }
         else if (WIFSIGNALED(status))
