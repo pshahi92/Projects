@@ -184,16 +184,13 @@ void eval(char *cmdline)
         sigemptyset(&mask);
         sigaddset(&mask, SIGCHLD);
         Sigprocmask(SIG_BLOCK, &mask, NULL); /* Block SIG_CHLD */
-
         pid = Fork();
         if ( pid == 0) 
         {
             /* Child Process */
             Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
-
             /* putting child in new process group, pgid == child pid */
             Setpgid(0,0);
-
             /* Child runs user job */
             if (execve(argv[0], argv, environ) < 0) 
             {
@@ -201,7 +198,6 @@ void eval(char *cmdline)
                 exit(0);
             }
         }
-
         if(bg) /* Checking BG or FG */
         {    
             addjob(jobs, pid, BG, cmdline); /* adding the child to job array as BG */
@@ -212,28 +208,7 @@ void eval(char *cmdline)
         {
             addjob(jobs, pid, FG, cmdline); /* adding the child to job array as FG */
             Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
-
-            // int status;
-            // if (waitpid(pid, &status, 0) < 0)
-            // {
-                //going to wait until child finishes
-                //just sent stop signal and child stopped so it never finishes
-                //book recommeds to have busy
-                //keep checking until pid isnt fg rpocces
-            //move this busy loop to move fg
-            //but its ineffective and do a more effective call with sleep
-                // while(fgpid(jobs) == pid)
-                // {
-                //     ;
-                // }
             waitfg(pid);
-                // unix_error("waitfg: waitpid error");
-            // }
-            // else
-            // {   
-                //move to sigchild when it actually finishes
-                // deletejob(jobs, fgpid(jobs));
-            // }
         }
 
     }
@@ -286,8 +261,6 @@ void do_bgfg(char **argv)
         if (fgJob->state == ST)
             Kill(-(fgJob->pid), SIGCONT);
         fgJob->state = FG;
-        // printf("%s", "Job ");
-        // printJob(fgJob->pid);
     }
 }
 
@@ -327,18 +300,29 @@ void sigchld_handler(int sig)
             pid_t fg_job = fgpid(jobs);
             struct job_t* stpJob = getjobpid(jobs, fg_job);
             stpJob->state = ST;
-            printf("Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
+            
+            ssize_t bytes; 
+            const int STDOUT = 1;
+
+            bytes = write(STDOUT, "Jobs [", 6);
+            bytes = write(STDOUT, &(stpJob->jid), sizeof(stpJob->jid));
+            bytes = write(STDOUT, "] (", 3);
+            bytes = write(STDOUT, &(stpJob->pid), sizeof(stpJob->pid));
+            bytes = write(STDOUT, ") stopped by signal ", 20);
+            bytes = write(STDOUT, &(WSTOPSIG(status)), sizeof(WSTOPSIG(status)));
+            bytes = write(STDOUT, "\n", 1);
+
+
+            //sprintf(str, "Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
             return;
         }
         else if (WIFSIGNALED(status))
         {
-            // printf("%s\n","ifsignaled" );
             deletejob(jobs, pid);
             return;
         }
         else //WIFEXITED 
         {
-            // printf("%s\n", "ifexited");
             deletejob(jobs, pid);
             return;
         }
@@ -356,12 +340,10 @@ void sigint_handler(int sig)
     pid_t fg_job = fgpid(jobs);
     if(fg_job)
     {
-        Kill(-fg_job, SIGINT);//Kill(-fg_job, sig);
+        Kill(-fg_job, SIGINT);
         struct job_t* delJob = getjobpid(jobs, fg_job);
         printf("Job [%d] (%d) terminated by signal %d\n", delJob->jid, delJob->pid, sig);
     }
-    //kim says to delete in sigchld
-    //deletejob(jobs, fg_job);
     return;
 }
 
@@ -372,15 +354,11 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-    //need to get pid of fg job
     pid_t fg_job = fgpid(jobs);
 
     if(fg_job)
     {
-        Kill(-fg_job, SIGTSTP);//Kill(-fg_job, sig);
-        // struct job_t* stpJob = getjobpid(jobs, fg_job);
-        // stpJob->state = ST;
-        // printf(" 2.0 Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, sig);
+        Kill(-fg_job, SIGTSTP);
     }
     return;
 }
