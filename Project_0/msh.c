@@ -194,7 +194,7 @@ void eval(char *cmdline)
             /* Child runs user job */
             if (execve(argv[0], argv, environ) < 0) 
             {
-                printf("%s: Command not found.\n", argv[0]);
+                printf("%s: Command not found\n", argv[0]);
                 exit(0);
             }
         }
@@ -209,8 +209,9 @@ void eval(char *cmdline)
             addjob(jobs, pid, FG, cmdline); /* adding the child to job array as FG */
             Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
             waitfg(pid);
+            //printf("%s\n", "eval");
         }
-
+        //printf("%s\n", "after eval");
     }
     return;
 }
@@ -248,34 +249,58 @@ void do_bgfg(char **argv)
 {
     if (!strcmp(argv[0], "bg"))
     {
-        int jid = atoi(argv[1]+1);
-        struct job_t* bgJob = getjobjid(jobs, jid);
-        if(bgJob != NULL)
+        if(argv[1] != NULL)
         {
-            bgJob->state = BG;
-            Kill(-(bgJob->pid), SIGCONT);
-            printJob(bgJob->pid);
+            {
+                int id = atoi(argv[1]+1);
+                if(id != 0)
+                {
+                    struct job_t* bgJob = getjobjid(jobs, id);
+                    if(bgJob != NULL)
+                    {
+                        bgJob->state = BG;
+                        Kill(-(bgJob->pid), SIGCONT);
+                        printJob(bgJob->pid);
+                    }
+                    else
+                        printf("%s%d%s\n", "%", id, ": No such job");
+                }
+                else
+                    printf("%s\n", "bg: argument must be a PID or %jobid");
+            }
         }
         else
-        {
-            printf("%s %d %s\n", "%", jid, "No such job");
-        }
+            printf("%s\n", "bg command requires PID or %jobid argument" ); 
     }
     else if(!strcmp(argv[0], "fg"))
     {
-        int bgpid = atoi(argv[1]+1);
-        struct job_t* fgJob = getjobjid(jobs, bgpid);
-        if(fgJob != NULL)
+        if(argv[1] != NULL)
         {
-            if (fgJob->state == ST)
-                Kill(-(fgJob->pid), SIGCONT);
-            fgJob->state = FG;
-            waitfg(fgJob->pid);
+            {
+                int id;                    
+                id = atoi(argv[1]+1);
+
+                if(id != 0) 
+                {
+                    struct job_t* fgJob = getjobjid(jobs, id);
+                    if(fgJob != NULL)
+                    {
+                        if (fgJob->state == ST)
+                            Kill(-(fgJob->pid), SIGCONT);
+                        fgJob->state = FG;
+                        waitfg(fgJob->pid);
+                    }
+                    else
+                        printf("%s%d%s\n", "%", id, ": No such job");
+                }
+                else
+                {
+                    printf("%s\n", "fg: argument must be a PID or %jobid");
+                }
+            }
         }
         else
-        {
-            printf("%s %d %s\n", "%", bgpid, "No such job");
-        }
+            printf("%s\n", "fg command requires PID or %jobid argument" );
     }
 }
 
@@ -289,8 +314,13 @@ void waitfg(pid_t pid)
     while(1)
     {
         if(sleep(1))
-            if(fgpid(jobs) !=pid)
+            if(fgpid(jobs) != pid)
+            {
+                //printf("%s %d\n", "waitfg", pid );
+                //printf("%s %d\n", "fg", fgpid(jobs) );
+                fflush(stdout);
                 return;
+            }
     }
     
 }
@@ -380,6 +410,7 @@ void sigchld_handler(int sig)
         }
         else //WIFEXITED 
         {
+            //printf("%s %d\n", "WIFEXITED", pid );
             deletejob(jobs, pid);
             return;
         }
