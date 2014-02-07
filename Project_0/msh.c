@@ -250,18 +250,32 @@ void do_bgfg(char **argv)
     {
         int jid = atoi(argv[1]+1);
         struct job_t* bgJob = getjobjid(jobs, jid);
-        bgJob->state = BG;
-        Kill(-(bgJob->pid), SIGCONT);
-        printJob(bgJob->pid);
+        if(bgJob != NULL)
+        {
+            bgJob->state = BG;
+            Kill(-(bgJob->pid), SIGCONT);
+            printJob(bgJob->pid);
+        }
+        else
+        {
+            printf("%s %d %s\n", "%", jid, "No such job");
+        }
     }
     else if(!strcmp(argv[0], "fg"))
     {
         int bgpid = atoi(argv[1]+1);
         struct job_t* fgJob = getjobjid(jobs, bgpid);
-        if (fgJob->state == ST)
-            Kill(-(fgJob->pid), SIGCONT);
-        fgJob->state = FG;
-        waitfg(fgJob->pid);
+        if(fgJob != NULL)
+        {
+            if (fgJob->state == ST)
+                Kill(-(fgJob->pid), SIGCONT);
+            fgJob->state = FG;
+            waitfg(fgJob->pid);
+        }
+        else
+        {
+            printf("%s %d %s\n", "%", bgpid, "No such job");
+        }
     }
 }
 
@@ -272,11 +286,13 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-    while(fgpid(jobs) == pid)
+    while(1)
     {
-        ;
+        if(sleep(1))
+            if(fgpid(jobs) !=pid)
+                return;
     }
-    return;
+    
 }
 
 /*****************
@@ -382,8 +398,6 @@ void sigint_handler(int sig)
     if(fg_job)
     {
         Kill(-fg_job, SIGINT);
-        struct job_t* delJob = getjobpid(jobs, fg_job);
-        printf("Job [%d] (%d) terminated by signal %d\n", delJob->jid, delJob->pid, sig);
     }
     return;
 }
