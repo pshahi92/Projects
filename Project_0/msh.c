@@ -250,17 +250,32 @@ void do_bgfg(char **argv)
     {
         int jid = atoi(argv[1]+1);
         struct job_t* bgJob = getjobjid(jobs, jid);
-        bgJob->state = BG;
-        Kill(-(bgJob->pid), SIGCONT);
-        printJob(bgJob->pid);
+        if(bgJob != NULL)
+        {
+            bgJob->state = BG;
+            Kill(-(bgJob->pid), SIGCONT);
+            printJob(bgJob->pid);
+        }
+        else
+        {
+            printf("%s %d %s\n", "%", jid, "No such job");
+        }
     }
     else if(!strcmp(argv[0], "fg"))
     {
         int bgpid = atoi(argv[1]+1);
         struct job_t* fgJob = getjobjid(jobs, bgpid);
-        if (fgJob->state == ST)
-            Kill(-(fgJob->pid), SIGCONT);
-        fgJob->state = FG;
+        if(fgJob != NULL)
+        {
+            if (fgJob->state == ST)
+                Kill(-(fgJob->pid), SIGCONT);
+            fgJob->state = FG;
+            waitfg(fgJob->pid);
+        }
+        else
+        {
+            printf("%s %d %s\n", "%", bgpid, "No such job");
+        }
     }
 }
 
@@ -271,11 +286,13 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-    while(fgpid(jobs) == pid)
+    while(1)
     {
-        ;
+        if(sleep(1))
+            if(fgpid(jobs) !=pid)
+                return;
     }
-    return;
+    
 }
 
 /*****************
@@ -295,16 +312,17 @@ void sigchld_handler(int sig)
     int status;
     while ((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
     {
+        pid_t fg_job = fgpid(jobs);
+        struct job_t* stpJob = getjobpid(jobs, fg_job);
+        stpJob->state = ST;
+            
+        ssize_t bytes; 
+        const int STDOUT = 1;
+        
         if(WIFSTOPPED(status))
         {
-            pid_t fg_job = fgpid(jobs);
-            struct job_t* stpJob = getjobpid(jobs, fg_job);
-            stpJob->state = ST;
-            
-            ssize_t bytes; 
-            const int STDOUT = 1;
 
-            bytes = write(STDOUT, "Jobs [", 6);
+            bytes = write(STDOUT, "Job [", 6);
             if(bytes != 6)
                 exit(-999);
 
@@ -328,19 +346,40 @@ void sigchld_handler(int sig)
             bytes = write(STDOUT, "\n", 1);
             if(bytes != 1)
                 exit(-999);
-
-            // printf("%s\n", "stopped");
             return;
         }
-        if (WIFSIGNALED(status))
+        else if (WIFSIGNALED(status))
         {
-            // printf("%s\n", "signaled" );
+            bytes = write(STDOUT, "Job [", 6);
+            if(bytes != 6)
+                exit(-999);
+
+            printf("%d", stpJob->jid);
+            fflush(stdout);
+
+            bytes = write(STDOUT, "] (", 3);
+            if(bytes != 3)
+                exit(-999);
+
+            printf("%d", stpJob->pid);
+            fflush(stdout);
+
+            bytes = write(STDOUT, ") terminated by signal ", 23);
+            if(bytes != 23)
+                exit(-999);
+
+            printf("%d", WTERMSIG(status));
+            fflush(stdout);
+
+            bytes = write(STDOUT, "\n", 1);
+            if(bytes != 1)
+                exit(-999);
+
             deletejob(jobs, pid);
             return;
         }
         else //WIFEXITED 
         {
-            // printf("%s\n", "exited" );
             deletejob(jobs, pid);
             return;
         }
@@ -359,8 +398,6 @@ void sigint_handler(int sig)
     if(fg_job)
     {
         Kill(-fg_job, SIGINT);
-        struct job_t* delJob = getjobpid(jobs, fg_job);
-        printf("Job [%d] (%d) terminated by signal %d\n", delJob->jid, delJob->pid, sig);
     }
     return;
 }
