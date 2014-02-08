@@ -1,48 +1,33 @@
 ################
 YOUR INFO
 ################
-Name1:
-EID1:
-CS login:
-Email:
-Unique Number:
+Name21: Prithvi Shahi
+EID1: pbs428
+CS login: pshahi92
+Email: shahi.prithvi@gmail.com
+Unique Number: 53785
 
-Slip days used:
+
+Slip days used: 0
 
 ****EACH student submits a (unique) design document.****
 
 ################
 YOUR PARTNER'S INFO
 ################
-Name1:
-EID1:
-CS login:
-Email:
-Unique Number:
+Name2: Abraham Munoz  
+EID1: am56438
+CS login: abemunoz
+Email: abrahamunoz@utexas.edu 
+Unique Number: 53785
 
 Your partner's ranking (scale below):
 
 ################
 PARTNER EVALUATION SCALE
 ################
-Excellent: Consistently went above and beyond - tutored others, carried
-more than his/her fair share of the load.
-
-Very Good: Consistently did what he/she was supposed to do, very well
-prepared and cooperative.
-
 Satisfactory: Usually did what he/she was supposed to do, minimally
 prepared and cooperative.
-
-Marginal: Sometimes failed to show up, rarely prepared.
-
-Deficient: Often failed to show up, rarely prepared.
-
-Unsatisfactory: Consistently failed to show up, unprepared.
-
-Superficial: Practically no participation.
-
-No Show: No participation at all.
 
 ################
 Preliminaries
@@ -53,6 +38,7 @@ Preliminaries
 (2) Please cite any offline or online sources you consulted while
   preparing your submission, other than the Linux documentation,
   course text, and lecture notes.
+  B&O book. man pages for various functions.
 
 
 ################
@@ -60,10 +46,27 @@ Questions regarding Part 0
 ################
 (1) How many child processes are created when doFib() begins with
   an input of 5?  Show the return value for each child process, numbering
-  the processes beginning with 0 (the original process) and incrementing for
-  each child process.
+  the processes beginning with 0 (the original process) and incrementing for each child process.
+
+  14 child processes created.
+  0:1
+  1:1
+  2:1
+  3:1
+  4:1
+  5:1
+  6:1
+  7:2
+  8:1
+  9:1
+  10:2
+  11:2
+  12:3
+  13:5
+
 
 (2) In part 0.3, which flavor of exec did you choose to use?  Why?
+Execve was the exec of choice; firstly, it was readily available from the B&O book. Secondly, it best fit the criteria for part 0.3.
 
 
 ################
@@ -72,23 +75,30 @@ Questions regarding Part 1
 (1) In the provided utility function Signal(), what does the call to
   sigaction() do?  Why was sigaction() used instead of signal()?
 
+  It allows for other than the default behaviour of the signal handler. For instance, sigaction() can block various signals whereas Signal() does not provide this behaviour. If you use signal() it resets the signal handler and you have to reimplement it again and again; sigaction() will consistently handle signals. Therefore, we used sigaction().
+
+
 (2) What is the last assembly language instruction executed by the
   signal handler function that you write?
 
+0x00000000004009d2 <+129>:  callq  0x400bc0 <Signal>
+
 (3) After the instruction identified in the previous question executes, 
   what is the next assembly language instruction executed?
+
+  0x00000000004009d7 <+134>:  mov    $0x0,%eax
 
 (4) When the signal handler finishes running, it must restore all of
   the registers from the interrupted thread to exactly their values
   before the signal occurred. How is this done?
 
+  After a process is interrupted, the registers are saved followed by invocation of signal handler. All the register values get pushed onto the process/thread stack. After you do a functional, there is a jump, and before, the signal handler restores the registers. 
+
 
 ################
 Questions regarding Part 2
 ################
-(1) In msh.c, we use three separate signal handlers to catch our signals. 
-  You can also use a single signal handler to catch all three signals.  Is
-  there a design advantage of one over the other?  Explain your answer.
+(1) In msh.c, we use three separate signal handlers to catch our signals.
+  You can also use a single signal handler to catch all three signals.  Is there a design advantage of one over the other?  Explain your answer.
 
-
-
+  Since signal handling is an asynchronous process, and signals can be delivered to processes randomly and arbitrarily, they must be handled immediately. Therefore it is better to handle signals seperately; furthermore, it is better design to use three signal handlers so you don't have one handler for various functions. Three handlers distributes the work and makes the code much more readable.
