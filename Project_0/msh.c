@@ -340,65 +340,26 @@ void sigchld_handler(int sig)
         if(WIFSTOPPED(status))
         {
 
-            bytes = write(STDOUT, "Job [", 6);
-            if(bytes != 6)
-                exit(-999);
-
-            printf("%d", stpJob->jid);
-            fflush(stdout);
-
-            bytes = write(STDOUT, "] (", 3);
-            if(bytes != 3)
-                exit(-999);
-
-            printf("%d", stpJob->pid);
-            fflush(stdout);
-
-            bytes = write(STDOUT, ") stopped by signal ", 20);
-            if(bytes != 20)
-                exit(-999);
-
-            printf("%d", WSTOPSIG(status));
-            fflush(stdout);
-
-            bytes = write(STDOUT, "\n", 1);
-            if(bytes != 1)
+            char buffer[100];
+            sprintf(buffer, "Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
+            bytes = write(STDOUT, buffer, strlen(buffer));
+            if(bytes != strlen(buffer))
                 exit(-999);
             return;
         }
         else if (WIFSIGNALED(status))
         {
-            bytes = write(STDOUT, "Job [", 6);
-            if(bytes != 6)
+
+            char buffer[100];
+            sprintf(buffer, "Job [%d] (%d) terminated by signal %d\n", stpJob->jid, stpJob->pid, WTERMSIG(status));
+            bytes = write(STDOUT, buffer, strlen(buffer));
+            if(bytes != strlen(buffer))
                 exit(-999);
-
-            printf("%d", stpJob->jid);
-            fflush(stdout);
-
-            bytes = write(STDOUT, "] (", 3);
-            if(bytes != 3)
-                exit(-999);
-
-            printf("%d", stpJob->pid);
-            fflush(stdout);
-
-            bytes = write(STDOUT, ") terminated by signal ", 23);
-            if(bytes != 23)
-                exit(-999);
-
-            printf("%d", WTERMSIG(status));
-            fflush(stdout);
-
-            bytes = write(STDOUT, "\n", 1);
-            if(bytes != 1)
-                exit(-999);
-
             deletejob(jobs, pid);
             return;
         }
         else //WIFEXITED 
         {
-            //printf("%s %d\n", "WIFEXITED", pid );
             deletejob(jobs, pid);
             return;
         }
