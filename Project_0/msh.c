@@ -211,7 +211,7 @@ void eval(char *cmdline)
             waitfg(pid);
             //printf("%s\n", "eval");
         }
-        //printf("%s\n", "after eval");
+        // printf("%s\n", "after eval");
     }
     return;
 }
@@ -247,60 +247,51 @@ void eval(char *cmdline)
  */
 void do_bgfg(char **argv) 
 {
-    if (!strcmp(argv[0], "bg"))
+    if(!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg"))
     {
-        if(argv[1] != NULL)
+        if(argv[1] != NULL) //check to see if argv passed in at all
         {
+            if((argv[1][0] ==  '%') || ((argv[1][0] >= 48) && (argv[1][0] <= 57)))
+                //checks the first char of argv to see if its '%' or a number
             {
-                int id = atoi(argv[1]+1);
-                if(id != 0)
-                {
-                    struct job_t* bgJob = getjobjid(jobs, id);
-                    if(bgJob != NULL)
-                    {
-                        bgJob->state = BG;
-                        Kill(-(bgJob->pid), SIGCONT);
-                        printJob(bgJob->pid);
-                    }
-                    else
-                        printf("%s%d%s\n", "%", id, ": No such job");
-                }
-                else
-                    printf("%s\n", "bg: argument must be a PID or %jobid");
-            }
-        }
-        else
-            printf("%s\n", "bg command requires PID or %jobid argument" ); 
-    }
-    else if(!strcmp(argv[0], "fg"))
-    {
-        if(argv[1] != NULL)
-        {
-            {
-                int id;                    
-                id = atoi(argv[1]+1);
+                int id;
 
-                if(id != 0) 
+                if(argv[1][0] == '%')                 
+                    id = atoi(argv[1]+1);
+                else
+                    id = atoi(argv[1]);
+
+                struct job_t* jjob = getjobjid(jobs, id);
+                if(jjob != NULL)
                 {
-                    struct job_t* fgJob = getjobjid(jobs, id);
-                    if(fgJob != NULL)
+                    if (!strcmp(argv[0], "fg"))
                     {
-                        if (fgJob->state == ST)
-                            Kill(-(fgJob->pid), SIGCONT);
-                        fgJob->state = FG;
-                        waitfg(fgJob->pid);
+                        if (jjob->state == ST)
+                            Kill(-(jjob->pid), SIGCONT);
+                        jjob->state = FG;
+                        waitfg(jjob->pid);
                     }
                     else
-                        printf("%s%d%s\n", "%", id, ": No such job");
+                    {
+                        jjob->state = BG;
+                        Kill(-(jjob->pid), SIGCONT);
+                        printJob(jjob->pid);
+                    }
+
                 }
                 else
                 {
-                    printf("%s\n", "fg: argument must be a PID or %jobid");
+                    if(argv[1][0] == '%')
+                        printf("%s%d%s\n", "%", id, ": No such job");
+                    else
+                        printf("%s%d%s\n", "(", id, "): No such process"  );     
                 }
             }
+            else
+                printf("%s%s\n", argv[0], ": argument must be a PID or %jobid");
         }
-        else
-            printf("%s\n", "fg command requires PID or %jobid argument" );
+        else //if no argv print this statement
+            printf("%s%s\n", argv[0], " command requires PID or %jobid argument" );
     }
 }
 
@@ -316,9 +307,6 @@ void waitfg(pid_t pid)
         if(sleep(1))
             if(fgpid(jobs) != pid)
             {
-                //printf("%s %d\n", "waitfg", pid );
-                //printf("%s %d\n", "fg", fgpid(jobs) );
-                fflush(stdout);
                 return;
             }
     }
