@@ -2,7 +2,7 @@
  * msh - A mini shell program with job control
  * 
  * 
- ################
+################
 TEAM INFO
 ################
 Name1: Prithvi Shahi
@@ -82,6 +82,7 @@ void Setpgid(pid_t pid, pid_t pgid)
         unix_error("Setpgid error");
 }
 
+/* error handling wrapper for sigprocmask */
 void Sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
 {
     if(sigprocmask(how, set, oldset) < 0)
@@ -270,31 +271,31 @@ void do_bgfg(char **argv)
             if((argv[1][0] ==  '%') || ((argv[1][0] >= 48) && (argv[1][0] <= 57)))
                 //checks the first char of argv to see if its '%' or a number
             {
-                int id;
+                int id; //this int can represent either the pid or bgid
 
-                if(argv[1][0] == '%')                 
-                    id = atoi(argv[1]+1);
+                if(argv[1][0] == '%')   //if the first char is '%'
+                    id = atoi(argv[1]+1);   //then we want to get the numbers to the left
                 else
-                    id = atoi(argv[1]);
+                    id = atoi(argv[1]); //else just get the whole str
 
                 struct job_t* jjob = getjobjid(jobs, id);
-                if(jjob != NULL)
+                if(jjob != NULL) //does the job even exist?
                 {
-                    if (!strcmp(argv[0], "fg"))
+                    if (!strcmp(argv[0], "fg")) //handles fg jobs
                     {
                         if (jjob->state == ST)
                             Kill(-(jjob->pid), SIGCONT);
                         jjob->state = FG;
                         waitfg(jjob->pid);
                     }
-                    else
+                    else //handles bg jobs
                     {
                         jjob->state = BG;
                         Kill(-(jjob->pid), SIGCONT);
                         printJob(jjob->pid);
                     }
                 }
-                else
+                else //handles no such job cases
                 {
                     if(argv[1][0] == '%')
                         printf("%s%d%s\n", "%", id, ": No such job");
@@ -323,9 +324,7 @@ void waitfg(pid_t pid)
     {
         job = getjobpid(jobs, pid);
         if((job == NULL) || (job->state != FG))
-        {
             break;
-        }
     }
     return;
 }
@@ -350,12 +349,11 @@ void sigchld_handler(int sig)
     {
         pid_t fg_job = fgpid(jobs);
         struct job_t* stpJob = getjobpid(jobs, fg_job);
-        stpJob->state = ST;
-            
+        stpJob->state = ST;   
         ssize_t bytes; 
         const int STDOUT = 1;
         
-        if(WIFSTOPPED(status))
+        if(WIFSTOPPED(status)) //if the job was stopped, handle it here
         {
             char buffer[100];
             sprintf(buffer, "Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
@@ -364,7 +362,7 @@ void sigchld_handler(int sig)
                 exit(-999);
             return;
         }
-        else if (WIFSIGNALED(status))
+        else if (WIFSIGNALED(status)) //if the job was terminated by a signal, handle here
         {
             char buffer[100];
             sprintf(buffer, "Job [%d] (%d) terminated by signal %d\n", stpJob->jid, stpJob->pid, WTERMSIG(status));
@@ -374,7 +372,7 @@ void sigchld_handler(int sig)
             deletejob(jobs, pid);
             return;
         }
-        else //WIFEXITED 
+        else //WIFEXITED: job exited
         {
             deletejob(jobs, pid);
             return;
@@ -390,12 +388,9 @@ void sigchld_handler(int sig)
 void sigint_handler(int sig) 
 {
     //Abe driving
-    //need to get pid of fg job
     pid_t fg_job = fgpid(jobs);
     if(fg_job)
-    {
         Kill(-fg_job, SIGINT);
-    }
     return;
 }
 
@@ -408,19 +403,14 @@ void sigtstp_handler(int sig)
 {
     //Abe driving
     pid_t fg_job = fgpid(jobs);
-
     if(fg_job)
-    {
         Kill(-fg_job, SIGTSTP);
-    }
     return;
 }
 
 /*********************
  * End signal handlers
  *********************/
-
-
 
 /***********************
  * Other helper routines
@@ -453,19 +443,19 @@ void sigquit_handler(int sig)
     exit(0);
 }
 
+/* printJob function Prithvi wrote
+ * code adapted from listjobs provided by Dr. Norman
+ */
 void printJob(pid_t pid)
 {
     //Prithvi driving
     struct job_t* jobToPrint = getjobpid(jobs, pid);
-    
     printf("[%d] (%d) ", jobToPrint->jid, jobToPrint->pid);
     switch (jobToPrint->state) 
     {
-        case BG: 
-            //printf("Running ");
+        case BG: //do nothing
             break;
-        case FG: 
-            //printf("Foreground ");
+        case FG: //do nothing
             break;
         case ST: 
             printf("Stopped ");

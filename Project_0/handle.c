@@ -8,7 +8,6 @@
 #include "util.h"
 
 /*
-*
 ################
 TEAM INFO
 ################
@@ -23,6 +22,8 @@ EID2: am56438
 CS login: abemunoz
 Email: abrahamunoz@utexas.edu
 Unique Number: 53785
+*/
+
 /*
  * First, print out the process ID of this process.
  *
@@ -41,11 +42,15 @@ Unique Number: 53785
  	if (sig == SIGUSR1)
  	{
  		bytes = write(STDOUT, "exiting\n", 8);
+ 		if(bytes != 8)
+ 			exit(-999);
  		exit(0);
  	}
  	else if (sig == SIGINT)
  	{ 
  		bytes = write(STDOUT, "Nice try.\n", 10);
+ 		if(bytes != 10)
+ 			exit(-999);
  		return;
  	}
  	else if(bytes != 10)
