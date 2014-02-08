@@ -144,15 +144,15 @@ void printJob(pid_t pid);
     /* Execute the shell's read/eval loop */
     while (1) 
     {
-    	/* Read command line */
-    	if (emit_prompt) 
+        /* Read command line */
+        if (emit_prompt) 
         {
            printf("%s", prompt);
            fflush(stdout);
         }
         if ((fgets(cmdline, MAXLINE, stdin) == NULL) && ferror(stdin))
            app_error("fgets error");
-    	if (feof(stdin)) 
+        if (feof(stdin)) 
         {   /* End of file (ctrl-d) */
             fflush(stdout);
             exit(0);

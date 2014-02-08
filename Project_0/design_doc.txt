@@ -1,24 +1,24 @@
 ################
 YOUR INFO
 ################
-Name1: Abraham Munoz  
-EID1: am56438
-CS login: abemunoz
-Email: abrahamunoz@utexas.edu 
-Unique Number: 53785
+Name1:
+EID1:
+CS login:
+Email:
+Unique Number:
 
-Slip days used: 0
+Slip days used:
 
 ****EACH student submits a (unique) design document.****
 
 ################
 YOUR PARTNER'S INFO
 ################
-Name2: Prithvi Shahi
-EID1: pbs428
-CS login: pshahi92
-Email: shahi.prithvi@gmail.com
-Unique Number: 53785
+Name1:
+EID1:
+CS login:
+Email:
+Unique Number:
 
 Your partner's ranking (scale below):
 
@@ -27,6 +27,22 @@ PARTNER EVALUATION SCALE
 ################
 Excellent: Consistently went above and beyond - tutored others, carried
 more than his/her fair share of the load.
+
+Very Good: Consistently did what he/she was supposed to do, very well
+prepared and cooperative.
+
+Satisfactory: Usually did what he/she was supposed to do, minimally
+prepared and cooperative.
+
+Marginal: Sometimes failed to show up, rarely prepared.
+
+Deficient: Often failed to show up, rarely prepared.
+
+Unsatisfactory: Consistently failed to show up, unprepared.
+
+Superficial: Practically no participation.
+
+No Show: No participation at all.
 
 ################
 Preliminaries
@@ -44,10 +60,10 @@ Questions regarding Part 0
 ################
 (1) How many child processes are created when doFib() begins with
   an input of 5?  Show the return value for each child process, numbering
-  the processes beginning with 0 (the original process) and incrementing for each child process.
+  the processes beginning with 0 (the original process) and incrementing for
+  each child process.
 
 (2) In part 0.3, which flavor of exec did you choose to use?  Why?
-We got our eval method from B&O so we didn't exactly choose an exec. The flavor of exec used in eval is execve. The reason I think this is because we want to fork a child process and run the job in the context of the child if it is not a built in command. The execve function loads and runs a new program in the context of the current process, so it does exactly what was asked. 
 
 
 ################
@@ -56,30 +72,23 @@ Questions regarding Part 1
 (1) In the provided utility function Signal(), what does the call to
   sigaction() do?  Why was sigaction() used instead of signal()?
 
-The sigaction() system call is used to change the action taken by a
-process on receipt of a specific signal. Sigaction() was used instead of signal() because it is a lot more portable. The only portable use of signal() is to set a signal's disposition to SIG_DFL or SIG_IGN. The semantics when using signal() to establish a signal handler vary across systems, while sigaction() provides explicit control of the semantics when a signal handler is invoked. 
-
 (2) What is the last assembly language instruction executed by the
   signal handler function that you write?
 
-0x00000000004009d2 <+129>:  callq  0x400bc0 <Signal>
-
 (3) After the instruction identified in the previous question executes, 
   what is the next assembly language instruction executed?
-
-  0x00000000004009d7 <+134>:  mov    $0x0,%eax
 
 (4) When the signal handler finishes running, it must restore all of
   the registers from the interrupted thread to exactly their values
   before the signal occurred. How is this done?
 
-  Using the kernel-provided signal trampoline: sendsig will have copied the signal trampoline on the stack and has prepared the stack and/or CPU registers so that the signal handler returns to the signal trampoline. The job of the signal trampoline is to call the sigreturn or the setcontext system calls, handling a pointer to the CPU registers saved on stack. This restores the CPU registers to their values before the signal handler invocation, and next time the process will return to userland, it will resume its execution where it stopped.
 
 ################
 Questions regarding Part 2
 ################
-(1) In msh.c, we use three separate signal handlers to catch our signals.
-  You can also use a single signal handler to catch all three signals.  Is there a design advantage of one over the other?  Explain your answer.
+(1) In msh.c, we use three separate signal handlers to catch our signals. 
+  You can also use a single signal handler to catch all three signals.  Is
+  there a design advantage of one over the other?  Explain your answer.
 
 
 
