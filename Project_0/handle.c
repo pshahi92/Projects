@@ -17,7 +17,7 @@
  * Finally, loop forever, printing "Still here\n" once every
  * second.
  */
-
+//Abe driving
 //helper function to handle single
  void handler(int sig)
  {
@@ -36,10 +36,10 @@
  	else if(bytes != 10)
  		exit(-999);
  }
-
+//Prithvi driving now
 int main(int argc, char **argv)
 {
-	//signal handler
+	//signal handlers
 	Signal(SIGINT, handler);
 	Signal(SIGUSR1, handler);
 
@@ -67,5 +67,6 @@ int main(int argc, char **argv)
 	}
   return 0;
 }
+//Abe drove through debugging 
 
 
