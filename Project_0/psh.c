@@ -1,7 +1,21 @@
 /* 
  * psh - A prototype tiny shell program with job control
  * 
- * <Put your name and login ID here>
+ * 
+ ################
+TEAM INFO
+################
+Name1: Prithvi Shahi
+EID1: pbs428
+CS login: pshahi92
+Email: shahi.prithvi@gmail.com
+Unique Number: 53785
+
+Name2: Abraham Munoz
+EID2: am56438
+CS login: abemunoz
+Email: abrahamunoz@utexas.edu
+Unique Number: 53785
  */
 #include <stdio.h>
 #include <stdlib.h>

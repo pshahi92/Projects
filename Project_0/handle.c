@@ -7,7 +7,22 @@
 #include <unistd.h>
 #include "util.h"
 
+/*
+*
+################
+TEAM INFO
+################
+Name1: Prithvi Shahi
+EID1: pbs428
+CS login: pshahi92
+Email: shahi.prithvi@gmail.com
+Unique Number: 53785
 
+Name2: Abraham Munoz
+EID2: am56438
+CS login: abemunoz
+Email: abrahamunoz@utexas.edu
+Unique Number: 53785
 /*
  * First, print out the process ID of this process.
  *
@@ -53,8 +68,10 @@ int main(int argc, char **argv)
 	while(i) 
 	{
 		printf("Still here\n");
+		//implementing the print still here in every one second interval
 		while(nanosleep(&t, &r)) 
 		{
+			//this is reseting the timespec struct to the correct times
 			t.tv_sec = r.tv_sec;
 			t.tv_nsec = r.tv_nsec;
 			r.tv_sec = 0;

@@ -99,17 +99,18 @@ doFib(int n, int doPrint)
 
     //calling F(n-1)
     n -= 1;
-    doFib(n, 0);    
+    doFib(n, 0);
 
   }
   else //inside parent process
   {
     //calling F(n-2)
     if((childPID = Fork()) == 0)
-    {
+    {  
       //inside second child
       n -= 2;
       doFib(n, 0);
+
     }
     else
     {
@@ -119,6 +120,7 @@ doFib(int n, int doPrint)
         if(WIFEXITED(status))
         {
           fib_total += WEXITSTATUS(status);
+          printf("%d\n", fib_total);
         }
       }
     }

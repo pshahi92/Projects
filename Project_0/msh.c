@@ -1,7 +1,22 @@
 /* 
  * msh - A mini shell program with job control
  * 
- * <Put your name and login ID here>
+ * 
+ ################
+TEAM INFO
+################
+Name1: Prithvi Shahi
+EID1: pbs428
+CS login: pshahi92
+Email: shahi.prithvi@gmail.com
+Unique Number: 53785
+
+Name2: Abraham Munoz
+EID2: am56438
+CS login: abemunoz
+Email: abrahamunoz@utexas.edu
+Unique Number: 53785
+ * 
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -169,6 +184,7 @@ void eval(char *cmdline)
     int bg; /* Should the job run in bg or fg? */
     pid_t pid; /* Process id */
 
+    //Prithvi driving
     /* what we've added*/
     sigset_t mask; /* for Sigprocmask*/
     /* *************** */
@@ -209,9 +225,7 @@ void eval(char *cmdline)
             addjob(jobs, pid, FG, cmdline); /* adding the child to job array as FG */
             Sigprocmask(SIG_UNBLOCK, &mask, NULL); /* Unblock SIG_CHLD */
             waitfg(pid);
-            //printf("%s\n", "eval");
         }
-        // printf("%s\n", "after eval");
     }
     return;
 }
@@ -225,6 +239,7 @@ void eval(char *cmdline)
  */
  int builtin_cmd(char **argv) 
  {
+    //Abe driving
     if (!strcmp(argv[0], "quit")) /* quit command */
         exit(0);
     else if(!strcmp(argv[0], "jobs")) /* jobs command - lists all bg jobs*/
@@ -247,6 +262,7 @@ void eval(char *cmdline)
  */
 void do_bgfg(char **argv) 
 {
+    //Prithvi driving
     if(!strcmp(argv[0], "fg") || !strcmp(argv[0], "bg"))
     {
         if(argv[1] != NULL) //check to see if argv passed in at all
@@ -277,7 +293,6 @@ void do_bgfg(char **argv)
                         Kill(-(jjob->pid), SIGCONT);
                         printJob(jjob->pid);
                     }
-
                 }
                 else
                 {
@@ -302,14 +317,7 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
-    // while(1)
-    // {
-    //     if(sleep(1))
-    //         if(fgpid(jobs) != pid)
-    //         {
-    //             return;
-    //         }
-    // }
+    //Abe driving
     struct job_t *job;
     while(1)
     {
@@ -335,6 +343,7 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
+    //Prithvi driving
     pid_t pid;
     int status;
     while ((pid = waitpid(-1, &status, WNOHANG|WUNTRACED)) > 0)
@@ -348,7 +357,6 @@ void sigchld_handler(int sig)
         
         if(WIFSTOPPED(status))
         {
-
             char buffer[100];
             sprintf(buffer, "Job [%d] (%d) stopped by signal %d\n", stpJob->jid, stpJob->pid, WSTOPSIG(status));
             bytes = write(STDOUT, buffer, strlen(buffer));
@@ -358,7 +366,6 @@ void sigchld_handler(int sig)
         }
         else if (WIFSIGNALED(status))
         {
-
             char buffer[100];
             sprintf(buffer, "Job [%d] (%d) terminated by signal %d\n", stpJob->jid, stpJob->pid, WTERMSIG(status));
             bytes = write(STDOUT, buffer, strlen(buffer));
@@ -382,6 +389,7 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
+    //Abe driving
     //need to get pid of fg job
     pid_t fg_job = fgpid(jobs);
     if(fg_job)
@@ -398,6 +406,7 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
+    //Abe driving
     pid_t fg_job = fgpid(jobs);
 
     if(fg_job)
@@ -435,6 +444,7 @@ void usage(void)
  */
 void sigquit_handler(int sig) 
 {
+    //Abe driving
     ssize_t bytes; 
     const int STDOUT = 1;
     bytes = write(STDOUT, "Terminating after receipt of SIGQUIT signal\n", 44);
@@ -445,6 +455,7 @@ void sigquit_handler(int sig)
 
 void printJob(pid_t pid)
 {
+    //Prithvi driving
     struct job_t* jobToPrint = getjobpid(jobs, pid);
     
     printf("[%d] (%d) ", jobToPrint->jid, jobToPrint->pid);
