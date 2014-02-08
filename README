@@ -4,7 +4,7 @@ Spring 2014 Project Information
 ###################################################################
 Project 1: Threads
 http://www.cs.utexas.edu/~ans/classes/cs439/projects/pintos/WWW/pintos.html
-Objectives: Understanding iterrupts, thread state, and thread scheduling
+Objectives: Understanding interrupts, thread state, and thread scheduling
 Due: Feb 21
 Relative Weight: 20
 make turnin (in src directory)
