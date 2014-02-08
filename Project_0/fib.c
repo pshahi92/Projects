@@ -14,6 +14,8 @@ static void doFib(int n, int doPrint);
 
 static pid_t Fork(void);
 
+//Prithvi driving
+
 /*
  * unix_error - unix-style error routine.
  */
@@ -75,6 +77,8 @@ int main(int argc, char **argv)
  * a new child for each call. Each process should call
  * doFib() exactly once.
  */
+
+ //Abe driving now
 static void 
 doFib(int n, int doPrint)
 {
@@ -87,7 +91,8 @@ doFib(int n, int doPrint)
   if(n == 0)
     fib_total += 0; //exit(0); //EXIT_SUCCESS);
   else if(n == 1)
-    fib_total += 1; //exit(1); //EXIT_FAILURE);
+    fib_total += 1; //exit(1); //EXIT_FAILURE);       //Prithvi driving now
+
   else if ((childPID = Fork()) == 0)
   {
     //inside child process
@@ -108,7 +113,7 @@ doFib(int n, int doPrint)
     }
     else
     {
-      //we have to use the WEXITSTATUS here 
+      //we have to use the WEXITSTATUS here            //Abe driving as well through debugging
       while ((pid = waitpid(-1, &status, 0)) > 0)
       {
         if(WIFEXITED(status))
