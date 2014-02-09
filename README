@@ -1,0 +1,21 @@
+CS439: Principles of Computer Systems
+Spring 2014 Project Information
+###################################################################
+###################################################################
+Project 1: Threads
+http://www.cs.utexas.edu/~ans/classes/cs439/projects/pintos/WWW/pintos.html
+Objectives: Understanding interrupts, thread state, and thread scheduling
+Due: Feb 21
+Relative Weight: 20
+make turnin (in src directory)
+turnin -submit ccoleman threads_design threads_design.txt
+Partners: Abraham Munoz, Eros Smith, Prithvi Shahi
+###################################################################
+Project 0: A Mini Shell
+http://www.cs.utexas.edu/~ans/classes/cs439/projects/shell_project/shell.html
+Objectives: Become familiar with shells, fork(), exec(), and signal
+Due: Feb 7
+Relative Weight: 10
+make turnin
+turnin -submit ccoleman shell_design design_doc.txt
+Partners: Abraham Munoz, Prithvi Shahi
