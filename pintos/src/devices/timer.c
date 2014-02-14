@@ -87,9 +87,14 @@ timer_elapsed (int64_t then)
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
 void
-timer_sleep (int64_t ticks) 
+timer_sleep (int64_t numTicks) 
 {
-  int64_t start = timer_ticks ();
+  /*Prithvi driving*/
+  
+  struct thread *cur_thread = thread_current(); //returns the current thread we need
+  cur_thread->sleep_timer = numTicks + ticks; //this sets the sleep timer in the cur thread to val we want
+
+  //cur_thread->semaphore /* */
 
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
