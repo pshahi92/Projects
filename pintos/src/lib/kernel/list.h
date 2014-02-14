@@ -89,6 +89,8 @@
 /* List element. */
 struct list_elem 
   {
+    struct lock *node_lock;     /* pointer to the list lock */
+                                /* can be accessed from elements now */
     struct list_elem *prev;     /* Previous list element. */
     struct list_elem *next;     /* Next list element. */
   };
@@ -96,6 +98,9 @@ struct list_elem
 /* List. */
 struct list 
   {
+
+    struct lock list_lock; /* lock for the list */
+
     struct list_elem head;      /* List head. */
     struct list_elem tail;      /* List tail. */
   };
@@ -158,6 +163,10 @@ bool list_empty (struct list *);
 
 /* Miscellaneous. */
 void list_reverse (struct list *);
+
+/* Comparator */
+//void timer 
+/* ********** */
 
 /* Compares the value of two list elements A and B, given
    auxiliary data AUX.  Returns true if A is less than B, or
