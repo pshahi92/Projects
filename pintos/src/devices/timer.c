@@ -7,6 +7,7 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+#include "<list.h>"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -20,6 +21,7 @@
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
+
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
@@ -29,6 +31,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
+
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -94,7 +97,10 @@ timer_sleep (int64_t numTicks)
   struct thread *cur_thread = thread_current(); //returns the current thread we need
   cur_thread->sleep_timer = numTicks + ticks; //this sets the sleep timer in the cur thread to val we want
 
-  //cur_thread->semaphore /* */
+
+  /* * */
+  list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
+
 
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
@@ -103,7 +109,7 @@ timer_sleep (int64_t numTicks)
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
    turned on. */
-void
+// void
 timer_msleep (int64_t ms) 
 {
   real_time_sleep (ms, 1000);
@@ -248,4 +254,17 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
+}
+
+
+/* Comparator */
+bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux )
+{
+  /* Eros driving */
+  /* getting your thread pointers using list_entry */
+  struct thread *thread_a = list_entry(a, struct thread, wait_elem);
+  struct thread *thread_b = list_entry(b, struct thread, wait_elem);
+
+  /* returns true if thread_a->sleep_timer is less than thread_b->sleep_timer*/
+  return ((thread_a->sleep_timer) < (thread_b->sleep_timer));
 }
