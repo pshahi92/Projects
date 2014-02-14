@@ -101,6 +101,8 @@ struct thread
     int64_t sleep_timer;                /* Wake up thread to ready state after ticks > sleep_timer*/ 
     
     struct semaphore semaphore;         /* semaphore inside our thread */
+    
+    struct list_elem wait_elem;         /* elem for wait list */
     /* **************** */
     /* **************** */
     
