@@ -24,13 +24,9 @@
    that are ready to run but not actually running. */
 
 /*Eros driving*/
-static struct list new_list;
 static struct list ready_list;
-static struct list wait_list;
 
-/* sleep list for timer implementation */
-/* will be used by timer.c*/
-struct list sleep_list;
+
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -99,7 +95,6 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
-  list_init (&sleep_list); /* initialzing sleep list for timer stuff */
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
