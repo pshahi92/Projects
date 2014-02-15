@@ -106,16 +106,19 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t numTicks) 
 {
-  /*Prithvi driving*/  
-  struct thread *cur_thread = thread_current(); //returns the current thread we need
-  cur_thread->sleep_timer = numTicks + ticks; //this sets the sleep timer in the cur thread to val we want
-  //calling protected insert
-  // printf("<1> is list empty? %d\n", list_empty (&sleep_list)); /* checking to see if list is empty before we call protected insert*/
-  protected_insert(&sleep_list, cur_thread);
-  /* Eros driving */
-  sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
-  sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
-  /* thread gets woken in interrupt handler */
+  if(numTicks > 0) /* don't want to sleep for negative ticks */
+  {
+    /*Prithvi driving*/  
+    struct thread *cur_thread = thread_current(); //returns the current thread we need
+    cur_thread->sleep_timer = numTicks + timer_ticks();//ticks; //this sets the sleep timer in the cur thread to val we want
+    //calling protected insert
+    // printf("<1> is list empty? %d\n", list_empty (&sleep_list)); /* checking to see if list is empty before we call protected insert*/
+    protected_insert(&sleep_list, cur_thread);
+    /* Eros driving */
+    sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
+    sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
+    /* thread gets woken in interrupt handler */
+  }
 }
 
 void 
@@ -204,7 +207,6 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  
   if(!list_empty(&sleep_list))
   {
     struct list_elem *sleep_list_elem = list_front(&sleep_list);    /* getting the front node of the sleeping list */
