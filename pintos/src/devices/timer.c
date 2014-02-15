@@ -36,11 +36,11 @@ static void real_time_delay (int64_t num, int32_t denom);
 
 /* What we've added */
 //fucntion to protect inserts from thread interleaving
-static void protected_insert(struct thread *);
+static void protected_insert(struct list *, struct thread *);
 static bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux);
 /* sleep list for timer implementation */
 /* will be used by timer.c*/
-struct list sleep_list = LIST_INITIALIZER(sleep_list);
+// struct list sleep_list = LIST_INITIALIZER(sleep_list);
 /* What we have added */
 /* ****************** */
 static struct lock insert_Lock; /* declaring the lock to protect insert */
@@ -110,9 +110,8 @@ timer_sleep (int64_t numTicks)
   struct thread *cur_thread = thread_current(); //returns the current thread we need
   cur_thread->sleep_timer = numTicks + ticks; //this sets the sleep timer in the cur thread to val we want
   //calling protected insert
-  list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
-  printf("is list empty? %d\n", list_empty (&sleep_list));
-  //protected_insert(cur_thread);
+  // printf("<1> is list empty? %d\n", list_empty (&sleep_list)); /* checking to see if list is empty before we call protected insert*/
+  protected_insert(&sleep_list, cur_thread);
   /* Eros driving */
   sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
   sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
@@ -120,12 +119,13 @@ timer_sleep (int64_t numTicks)
 }
 
 void 
-protected_insert (struct thread *cur_thread)
+protected_insert (struct list* list, struct thread *cur_thread)
 {
   /* Prithvi driving */
   lock_init(&insert_Lock); //initializing the lock
   lock_acquire(&insert_Lock); //acquiring the lock
-  list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
+  list_insert_ordered(list, &(cur_thread->wait_elem), timer_compare, NULL);
+  // printf("<2> is list empty? %d\n", list_empty (&sleep_list)); /* checking to see if list is empty after we insert */
   lock_release(&insert_Lock); //releasing the lock
 }
 
@@ -204,18 +204,24 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
+  
   if(!list_empty(&sleep_list))
   {
-    /* getting the front node of the sleeping list */
-    struct list_elem *sleep_list_elem = list_front(&sleep_list);
-    /* getting the thread of the front node */
-    struct thread *top_thread = list_entry(sleep_list_elem, struct thread, wait_elem);
-    /* checking to see if the sleep_timer inside the thread is equal to ticks */
-    while(ticks == top_thread->sleep_timer)
+    struct list_elem *sleep_list_elem = list_front(&sleep_list);    /* getting the front node of the sleeping list */
+    struct thread *top_thread = list_entry(sleep_list_elem, struct thread, wait_elem);    /* getting the thread of the front node */
+    int64_t target_tick = top_thread->sleep_timer;    /* intializing the target tick we want */
+    while(ticks == target_tick)    /* checking to see if the sleep_timer inside the thread is equal to ticks */
     {
-      /* removing the sleep list elem node from sleep list */
-      struct list_elem *removed_node = list_remove(sleep_list_elem);
-      sema_up(&(top_thread->thread_semaphore)); /* sema up on  */
+      struct list_elem *removed_node = list_remove(sleep_list_elem);      /* removing the sleep list elem node from sleep list */
+      sema_up(&(top_thread->thread_semaphore));    /* sema up puts into ready queue  */
+      if(!list_empty(&sleep_list))    /* if the list is not empty we want to continue to traverse list for all matching target_ticks */
+      {
+        sleep_list_elem = list_front(&sleep_list);    /* reinitializing sleep_list_elem to new front node of sleeping list*/
+        top_thread = list_entry(sleep_list_elem, struct thread, wait_elem);    /* getting updated thread of new front node */
+        target_tick = top_thread->sleep_timer;    /* reinitializing var to new target */
+      }
+      else
+        target_tick = -1;    /* list is empty, breaking out of while loop */
     }
   }
   thread_tick ();
