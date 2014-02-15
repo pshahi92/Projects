@@ -8,6 +8,7 @@
 
 
 /* What we've added */
+struct list sleep_list; // = LIST_INITIALIZER(sleep_list);
 
 
 /* States in a thread's life cycle. */
