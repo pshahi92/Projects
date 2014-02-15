@@ -7,7 +7,8 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
-#include "<list.h>"
+#include "lib/kernel/list.h"
+// #include "threads/thread.c"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -22,6 +23,7 @@
 static int64_t ticks;
 
 
+
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
 static unsigned loops_per_tick;
@@ -32,7 +34,13 @@ static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
 
-
+/* What we've added */
+//fucntion to protect inserts from thread interleaving
+static void protected_insert(struct thread *);
+static bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux);
+/* sleep list for timer implementation */
+/* will be used by timer.c*/
+struct list sleep_list = LIST_INITIALIZER(sleep_list);
 /* What we have added */
 /* ****************** */
 static struct lock insert_Lock; /* declaring the lock to protect insert */
@@ -102,14 +110,17 @@ timer_sleep (int64_t numTicks)
   struct thread *cur_thread = thread_current(); //returns the current thread we need
   cur_thread->sleep_timer = numTicks + ticks; //this sets the sleep timer in the cur thread to val we want
   //calling protected insert
-  protected_insert(&cur_thread);
+  list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
+  printf("is list empty? %d\n", list_empty (&sleep_list));
+  //protected_insert(cur_thread);
   /* Eros driving */
   sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
   sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
   /* thread gets woken in interrupt handler */
 }
 
-void protected_insert(struct thread *)
+void 
+protected_insert (struct thread *cur_thread)
 {
   /* Prithvi driving */
   lock_init(&insert_Lock); //initializing the lock
@@ -193,17 +204,19 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  /* getting the front node of the sleeping list */
-  struct list_elem *sleep_list_elem = list_front(&sleep_list);
-  /* getting the thread of the front node */
-  struct thread *top_thread = list_entry(&sleep_list_elem, struct thread, wait_elem);
-  /* checking to see if the sleep_timer inside the thread is equal to ticks */
-  while(ticks == top_thread->sleep_timer)
+  if(!list_empty(&sleep_list))
   {
-    /* removing the sleep list elem node from sleep list */
-    struct list_elem *removed_node = list_remove(&sleep_list_elem);
-
-    sema_up(&(top_thread->thread_semaphore)); /* sema up on  */
+    /* getting the front node of the sleeping list */
+    struct list_elem *sleep_list_elem = list_front(&sleep_list);
+    /* getting the thread of the front node */
+    struct thread *top_thread = list_entry(sleep_list_elem, struct thread, wait_elem);
+    /* checking to see if the sleep_timer inside the thread is equal to ticks */
+    while(ticks == top_thread->sleep_timer)
+    {
+      /* removing the sleep list elem node from sleep list */
+      struct list_elem *removed_node = list_remove(sleep_list_elem);
+      sema_up(&(top_thread->thread_semaphore)); /* sema up on  */
+    }
   }
   thread_tick ();
 }
@@ -282,7 +295,7 @@ real_time_delay (int64_t num, int32_t denom)
 
 /* Comparator- to compare two threads based first on sleep timer and second on run
 priority*/
-bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux )
+bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux)
 {
   /* Eros driving */
   /* getting your thread pointers using list_entry */
