@@ -8,8 +8,11 @@
 
 
 /* What we've added */
-struct list sleep_list; // = LIST_INITIALIZER(sleep_list);
-
+struct list sleep_list;
+/* Comparator- to compare two threads based on run priority*/
+bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux);
+/* workaround for calling scheduel() from synch.c */
+void Schedule(void);
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -96,6 +99,7 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    int nice_value;                     /* Nice value of the thread */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */

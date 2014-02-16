@@ -23,11 +23,10 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 
+/* What we've added */
 /*Eros driving*/
 static struct list ready_list;
-
 struct list sleep_list; // = LIST_INITIALIZER(sleep_list);
-static bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux);
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -75,6 +74,15 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
+
+/* What we've added */
+/* workaround for calling scheduel() from synch.c */
+void Schedule(void)
+{
+  schedule();
+}
+/* **************** */
+
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -252,7 +260,9 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  //list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem,
+                     priority_compare, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -322,8 +332,12 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  if (cur != idle_thread)
+  { 
+    //list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem,
+                     priority_compare, NULL);
+  }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -350,21 +364,32 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  /* setting the current thread's priority to new_priority */
+  /* checking the next thread to run priority
+  if the next thread to run has a higher priority than the current thread
+  we set the current threads priority to the new priority and then yield*/
+  if(thread_current()->priority > new_priority)
+  {
+    thread_current()->priority = new_priority;
+    thread_yield();
+  }
+  else if(thread_current()->priority < new_priority)// else all is good and we just set the new priority
+      thread_current()->priority = new_priority;
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  /* returning priority */
+  return thread_current()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
 {
-  /* Not yet implemented. */
+  // thread_current()->
 }
 
 /* Returns the current thread's nice value. */
@@ -476,7 +501,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  list_push_back (&all_list, &t->allelem);
+  // list_push_back (&all_list, &t->allelem);
+  list_insert_ordered (&all_list, &t->allelem,
+                     priority_compare, NULL);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -505,7 +532,7 @@ next_thread_to_run (void)
     return idle_thread;
   else
   {
-    list_sort (&ready_list, priority_compare, NULL); /* sorting the ready list by priority */
+   // list_sort (&ready_list, priority_compare, NULL); /* sorting the ready list by priority */
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
   }
 }
@@ -607,7 +634,7 @@ bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux)
   struct thread *thread_b = list_entry(b, struct thread, elem);
 
   //sorts on priorities
-  if((thread_a->priority) < (thread_b->priority))
+  if((thread_b->priority) < (thread_a->priority))
     return 1;
   else
     return 0;

@@ -31,6 +31,7 @@
 #include <string.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "list.h" /* needed for list_sort function */
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -57,6 +58,9 @@ sema_init (struct semaphore *sema, unsigned value)
    interrupt handler.  This function may be called with
    interrupts disabled, but if it sleeps then the next scheduled
    thread will probably turn interrupts back on. */
+
+/*Abe driving */
+
 void
 sema_down (struct semaphore *sema) 
 {
@@ -68,7 +72,13 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      //void list_insert_ordered (struct list *, struct list_elem *,
+      //                    list_less_func *, void *aux);
+
+      // list_push_back (&sema->waiters, &thread_current ()->elem);
+      /* every semaphore has a list of waiters, we are sorting the waiters according to priority */
+      /* highest priority first */
+      list_insert_ordered(&sema->waiters, &thread_current ()->elem, priority_compare, NULL);
       thread_block ();
     }
   sema->value--;
@@ -118,6 +128,10 @@ sema_up (struct semaphore *sema)
                                 struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
+
+  /* checking the priority of the current thread just taken on sema waiters versus the priority of the
+  currently scheduled thread */
+  //Schedule();
 }
 
 static void sema_test_helper (void *sema_);
