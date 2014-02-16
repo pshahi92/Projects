@@ -131,7 +131,7 @@ sema_up (struct semaphore *sema)
 
   /* checking the priority of the current thread just taken on sema waiters versus the priority of the
   currently scheduled thread */
-  //Schedule();
+  // thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -210,6 +210,10 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  if(lock->holder != NULL)
+  {
+    lock->holder->priority = thread_get_priority();
+  }
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
@@ -244,9 +248,10 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-
+  // thread_current()->priority = thread_current()->prev_priority;
   lock->holder = NULL;
   sema_up (&lock->semaphore);
+  //thread_yield();
 }
 
 /* Returns true if the current thread holds LOCK, false

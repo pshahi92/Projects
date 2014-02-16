@@ -27,6 +27,7 @@
 /*Eros driving*/
 static struct list ready_list;
 struct list sleep_list; // = LIST_INITIALIZER(sleep_list);
+static struct lock set_pri_lock;
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -75,14 +76,10 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
-/* What we've added */
-/* workaround for calling scheduel() from synch.c */
 void Schedule(void)
 {
   schedule();
 }
-/* **************** */
-
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -106,6 +103,8 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&sleep_list);
   list_init (&all_list);
+  /* lock initialization*/
+  lock_init(&set_pri_lock);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -222,7 +221,10 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
+  /* when we create a new thread we need to see if the running thread has a higher priority
+  than the thread that is just created
+  so we call yield and give control to scheduler so it can decide which thread to schedule */
+  thread_yield();
   return tid;
 }
 
@@ -334,9 +336,9 @@ thread_yield (void)
   old_level = intr_disable ();
   if (cur != idle_thread)
   { 
-    //list_push_back (&ready_list, &cur->elem);
+    // list_push_back (&ready_list, &cur->elem);
     list_insert_ordered (&ready_list, &cur->elem,
-                     priority_compare, NULL);
+                    priority_compare, NULL);
   }
   cur->status = THREAD_READY;
   schedule ();
@@ -368,13 +370,18 @@ thread_set_priority (int new_priority)
   /* checking the next thread to run priority
   if the next thread to run has a higher priority than the current thread
   we set the current threads priority to the new priority and then yield*/
-  if(thread_current()->priority > new_priority)
+
+  lock_acquire(&set_pri_lock);
+  struct thread *current = thread_current();  
+  if(current->priority > new_priority || next_thread_to_run()->priority > new_priority)
   {
-    thread_current()->priority = new_priority;
+    current->priority = new_priority;
     thread_yield();
   }
-  else if(thread_current()->priority < new_priority)// else all is good and we just set the new priority
-      thread_current()->priority = new_priority;
+  else if(current->priority < new_priority)// else all is good and we just set the new priority
+    current->priority = new_priority;
+  // list_sort(&ready_list, priority_compare, NULL);
+  lock_release(&set_pri_lock);
 }
 
 /* Returns the current thread's priority. */
@@ -501,6 +508,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->prev_priority = t->priority;
+
   // list_push_back (&all_list, &t->allelem);
   list_insert_ordered (&all_list, &t->allelem,
                      priority_compare, NULL);

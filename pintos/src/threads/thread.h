@@ -11,9 +11,7 @@
 struct list sleep_list;
 /* Comparator- to compare two threads based on run priority*/
 bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux);
-/* workaround for calling scheduel() from synch.c */
 void Schedule(void);
-
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -107,11 +105,11 @@ struct thread
 
     /* What we've added */
     /* **************** */
-    int64_t sleep_timer;                /* Wake up thread to ready state after ticks > sleep_timer*/ 
-    
+    int64_t sleep_timer;                /* Wake up thread to ready state after ticks > sleep_timer*/  
     struct semaphore thread_semaphore;         /* semaphore inside our thread */
-    
     struct list_elem wait_elem;         /* elem for wait list */
+    int prev_priority;                  /* Old priority - used for priority donation
+                                           inside lock acquire and lock release*/
     /* **************** */
     /* **************** */
     
