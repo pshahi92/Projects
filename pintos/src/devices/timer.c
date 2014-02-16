@@ -317,7 +317,7 @@ bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux)
     return 1;
   else if((thread_a->sleep_timer) > (thread_b->sleep_timer))
     return 0;
-  else//they are equal
+  else // they are equal
   {
     if((thread_a->priority) < (thread_b->priority))
       return 1;
