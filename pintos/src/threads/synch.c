@@ -131,7 +131,8 @@ sema_up (struct semaphore *sema)
 
   /* checking the priority of the current thread just taken on sema waiters versus the priority of the
   currently scheduled thread */
-  // thread_yield();
+  
+  thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -216,22 +217,23 @@ lock_acquire (struct lock *lock)
   }
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
-}
-/*
-  if(lock->holder != NULL)
-  {
-    lock->holder->prev_priority = lock->holder->priority; /* prev priority is set*/
+
+  // if(lock->holder != NULL)
+  // {
+  //   lock->holder->prev_priority = lock->holder->priority; /* prev priority is set*/
   //   struct list waiting_list = (lock->semaphore.waiters);
-  //   if(&waiting_list != NULL)
+  //   if(&waiting_list)
   //   {
-  //     // list_sort(&waiting_list, priority_compare, NULL); /* sorting our waiting list to sort by highest priority first */
-  //     struct list_elem *wait_list_elem = list_front(&waiting_list);
+  //     // list_sort(&waiting_list, sema_priority_compare, NULL); /* sorting our waiting list to sort by highest priority first */
+  //     struct list_elem *wait_list_elem = list_max(&waiting_list, sema_priority_compare, NULL);
   //     struct thread *top_thread = list_entry(wait_list_elem, struct thread, wait_elem);    /* getting the thread of the front node */
   //     lock->holder->priority = top_thread->priority; /* top thread has the highest priority so we give that priority to the current lower priority thread */
   //   }
   // }
   // sema_down (&lock->semaphore);
-  // lock->holder = thread_current (); */
+  // lock->holder = thread_current (); 
+}
+
     
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -370,4 +372,19 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+bool sema_priority_compare(struct list_elem *a, struct list_elem *b, void *aux)
+{
+  /* Eros driving */
+  /* getting your thread pointers using list_entry */
+  struct thread *thread_a = list_entry(a, struct thread, elem);
+  struct thread *thread_b = list_entry(b, struct thread, elem);
+
+  //sorts on priorities
+  if((thread_a->priority) < (thread_b->priority))
+    return 1;
+  else
+    return 0;
+
 }
