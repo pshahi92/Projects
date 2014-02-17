@@ -36,7 +36,6 @@ static void real_time_delay (int64_t num, int32_t denom);
 
 /* What we've added */
 //fucntion to protect inserts from thread interleaving
-static void protected_insert(struct list *, struct thread *);
 static bool timer_compare(struct list_elem *a, struct list_elem *b, void *aux);
 /* sleep list for timer implementation */
 /* will be used by timer.c*/
@@ -113,24 +112,12 @@ timer_sleep (int64_t numTicks)
     sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
     sema_up(&(cur_thread->thread_semaphore));
     cur_thread->sleep_timer = numTicks + timer_ticks(); //this sets the sleep timer in the cur thread to val we want
-    //calling protected insert
-    // protected_insert(&sleep_list, cur_thread);
     list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
-
     /* Eros driving */
     sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
     sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
     /* thread gets woken in interrupt handler */
   }
-}
-
-void 
-protected_insert (struct list* list, struct thread *cur_thread)
-{
-  /* Prithvi driving */
-  // lock_init(&insert_Lock); //initializing the lock
-  // lock_acquire(&insert_Lock); //acquiring the lock
-  // lock_release(&insert_Lock); //releasing the lock
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -209,7 +196,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   //msg ("entering method.");
   ticks++;
-  thread_tick ();
   
   if(!list_empty(&sleep_list))
   {
@@ -230,6 +216,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
         target_tick = -1;    /* list is empty, breaking out of while loop */
     }
   }
+  thread_tick ();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
