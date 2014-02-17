@@ -110,11 +110,15 @@ timer_sleep (int64_t numTicks)
   {
     /*Prithvi driving*/  
     struct thread *cur_thread = thread_current(); //returns the current thread we need
+    sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
+    sema_up(&(cur_thread->thread_semaphore));
     cur_thread->sleep_timer = numTicks + timer_ticks(); //this sets the sleep timer in the cur thread to val we want
     //calling protected insert
-    protected_insert(&sleep_list, cur_thread);
+    // protected_insert(&sleep_list, cur_thread);
+    list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
+
     /* Eros driving */
-    sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
+    sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
     sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
     /* thread gets woken in interrupt handler */
   }
@@ -124,10 +128,9 @@ void
 protected_insert (struct list* list, struct thread *cur_thread)
 {
   /* Prithvi driving */
-  lock_init(&insert_Lock); //initializing the lock
-  lock_acquire(&insert_Lock); //acquiring the lock
-  list_insert_ordered(list, &(cur_thread->wait_elem), timer_compare, NULL);
-  lock_release(&insert_Lock); //releasing the lock
+  // lock_init(&insert_Lock); //initializing the lock
+  // lock_acquire(&insert_Lock); //acquiring the lock
+  // lock_release(&insert_Lock); //releasing the lock
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
