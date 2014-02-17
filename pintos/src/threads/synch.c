@@ -217,6 +217,22 @@ lock_acquire (struct lock *lock)
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 }
+/*
+  if(lock->holder != NULL)
+  {
+    lock->holder->prev_priority = lock->holder->priority; /* prev priority is set*/
+  //   struct list waiting_list = (lock->semaphore.waiters);
+  //   if(&waiting_list != NULL)
+  //   {
+  //     // list_sort(&waiting_list, priority_compare, NULL); /* sorting our waiting list to sort by highest priority first */
+  //     struct list_elem *wait_list_elem = list_front(&waiting_list);
+  //     struct thread *top_thread = list_entry(wait_list_elem, struct thread, wait_elem);    /* getting the thread of the front node */
+  //     lock->holder->priority = top_thread->priority; /* top thread has the highest priority so we give that priority to the current lower priority thread */
+  //   }
+  // }
+  // sema_down (&lock->semaphore);
+  // lock->holder = thread_current (); */
+    
 
 /* Tries to acquires LOCK and returns true if successful or false
    on failure.  The lock must not already be held by the current

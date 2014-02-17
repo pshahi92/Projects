@@ -373,13 +373,13 @@ thread_set_priority (int new_priority)
 
   lock_acquire(&set_pri_lock);
   struct thread *current = thread_current();  
-  if(current->priority > new_priority || next_thread_to_run()->priority > new_priority)
-  {
+  // if(current->priority > new_priority || next_thread_to_run()->priority > new_priority)
+  // {
     current->priority = new_priority;
     thread_yield();
-  }
-  else if(current->priority < new_priority)// else all is good and we just set the new priority
-    current->priority = new_priority;
+  // }
+  // else if(current->priority < new_priority)// else all is good and we just set the new priority
+  //   current->priority = new_priority;
   // list_sort(&ready_list, priority_compare, NULL);
   lock_release(&set_pri_lock);
 }
