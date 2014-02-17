@@ -227,7 +227,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
         target_tick = -1;    /* list is empty, breaking out of while loop */
     }
   }
-  //msg ("exiting method.");
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
