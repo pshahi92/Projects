@@ -107,14 +107,16 @@ timer_sleep (int64_t numTicks)
 {
   if(numTicks > 0) /* don't want to sleep for negative or zero ticks */
   {
+    //enum intr_level old_level;
+    //old_level = intr_disable ();
     /*Prithvi driving*/  
     struct thread *cur_thread = thread_current(); //returns the current thread we need
     sema_init(&(cur_thread->thread_semaphore), 0); /* initializing thread semaphore */
-    sema_up(&(cur_thread->thread_semaphore));
+
     cur_thread->sleep_timer = numTicks + timer_ticks(); //this sets the sleep timer in the cur thread to val we want
     list_insert_ordered(&sleep_list, &(cur_thread->wait_elem), timer_compare, NULL);
     /* Eros driving */
-    sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
+    //intr_set_level (old_level);
     sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
     /* thread gets woken in interrupt handler */
   }
@@ -195,6 +197,7 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   
+  ticks++;
   if(!list_empty(&sleep_list))
   {
     struct list_elem *sleep_list_elem = list_front(&sleep_list);    /* getting the front node of the sleeping list */
@@ -214,7 +217,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
         break;
     }
   }
-  ticks++;
+  
   thread_tick ();
 }
 
