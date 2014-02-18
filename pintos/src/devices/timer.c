@@ -194,15 +194,13 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  //msg ("entering method.");
-  ticks++;
   
   if(!list_empty(&sleep_list))
   {
     struct list_elem *sleep_list_elem = list_front(&sleep_list);    /* getting the front node of the sleeping list */
     struct thread *top_thread = list_entry(sleep_list_elem, struct thread, wait_elem);    /* getting the thread of the front node */
     int64_t target_tick = top_thread->sleep_timer;    /* intializing the target tick we want */
-    while(ticks == target_tick)    /* checking to see if the sleep_timer inside the thread is equal to ticks */
+    while(ticks >= target_tick)    /* checking to see if the sleep_timer inside the thread is equal to ticks */
     {
       struct list_elem *removed_node = list_remove(sleep_list_elem);      /* removing the sleep list elem node from sleep list */
       sema_up(&(top_thread->thread_semaphore));    /* sema up puts into ready queue  */
@@ -213,9 +211,10 @@ timer_interrupt (struct intr_frame *args UNUSED)
         target_tick = top_thread->sleep_timer;    /* reinitializing var to new target */
       }
       else
-        target_tick = -1;    /* list is empty, breaking out of while loop */
+        break;
     }
   }
+  ticks++;
   thread_tick ();
 }
 
