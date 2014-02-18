@@ -124,15 +124,17 @@ sema_up (struct semaphore *sema)
 
   old_level = intr_disable ();
   if (!list_empty (&sema->waiters)) 
-    thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+    thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
+    // thread_unblock (list_entry (list_max(&sema->waiters, sema_priority_compare, NULL), struct thread, elem));
   sema->value++;
   intr_set_level (old_level);
 
   /* checking the priority of the current thread just taken on sema waiters versus the priority of the
   currently scheduled thread */
-  
-  thread_yield();
+  if(intr_context ())
+    intr_yield_on_return();
+  else
+    thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -213,14 +215,15 @@ lock_acquire (struct lock *lock)
 
   if(lock->holder != NULL)
   {
-    lock->holder->priority = thread_get_priority();
+    int lock_requester_pri = thread_get_priority();
+    if(lock_requester_pri > lock->holder->priority)
+      lock->holder->priority = lock_requester_pri;
   }
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 
   // if(lock->holder != NULL)
   // {
-  //   lock->holder->prev_priority = lock->holder->priority; /* prev priority is set*/
   //   struct list waiting_list = (lock->semaphore.waiters);
   //   if(&waiting_list)
   //   {
@@ -382,9 +385,6 @@ bool sema_priority_compare(struct list_elem *a, struct list_elem *b, void *aux)
   struct thread *thread_b = list_entry(b, struct thread, elem);
 
   //sorts on priorities
-  if((thread_a->priority) < (thread_b->priority))
-    return 1;
-  else
-    return 0;
+  return((thread_a->priority) < (thread_b->priority));
 
 }

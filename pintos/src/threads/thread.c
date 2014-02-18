@@ -332,19 +332,18 @@ thread_yield (void)
   enum intr_level old_level;
   
   ASSERT (!intr_context ());
-  if (cur->priority < next_thread_to_run()->priority)
-  {
-    old_level = intr_disable ();
-    if (cur != idle_thread)
-    { 
-      // list_push_back (&ready_list, &cur->elem);
-      list_insert_ordered (&ready_list, &cur->elem,
-                      priority_compare, NULL);
-    }
-    cur->status = THREAD_READY;
-    schedule ();
-  }
-  
+
+  // if( next_thread_to_run())
+    // if (cur->priority < next_thread_to_run()->priority)
+      old_level = intr_disable ();
+      if (cur != idle_thread)
+      { 
+        // list_push_back (&ready_list, &cur->elem);
+        list_insert_ordered (&ready_list, &cur->elem,
+                        priority_compare, NULL);
+      }
+      cur->status = THREAD_READY;
+      schedule ();
   intr_set_level (old_level);
 }
 
@@ -646,9 +645,5 @@ bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux)
   struct thread *thread_b = list_entry(b, struct thread, elem);
 
   //sorts on priorities
-  if((thread_b->priority) < (thread_a->priority))
-    return 1;
-  else
-    return 0;
-
+  return ((thread_b->priority) < (thread_a->priority));
 }
