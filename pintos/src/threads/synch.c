@@ -72,8 +72,6 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      //void list_insert_ordered (struct list *, struct list_elem *,
-      //                    list_less_func *, void *aux);
 
       // list_push_back (&sema->waiters, &thread_current ()->elem);
       /* every semaphore has a list of waiters, we are sorting the waiters according to priority */
@@ -210,31 +208,20 @@ void
 lock_acquire (struct lock *lock)
 {
   ASSERT (lock != NULL);
-  ASSERT (!intr_context ());
+  ASSERT (!intr_context ()); //checking to see that we are NOT in the context of an external interrupt
   ASSERT (!lock_held_by_current_thread (lock));
 
   if(lock->holder != NULL)
   {
-    int lock_requester_pri = thread_get_priority();
+    int lock_requester_pri = thread_get_priority(); // gettign prioritu of the lock requester
+
     if(lock_requester_pri > lock->holder->priority)
-      lock->holder->priority = lock_requester_pri;
+      lock->holder->priority = lock_requester_pri; //setting holder pirority to requeeter pri
   }
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
 
-  // if(lock->holder != NULL)
-  // {
-  //   struct list waiting_list = (lock->semaphore.waiters);
-  //   if(&waiting_list)
-  //   {
-  //     // list_sort(&waiting_list, sema_priority_compare, NULL); /* sorting our waiting list to sort by highest priority first */
-  //     struct list_elem *wait_list_elem = list_max(&waiting_list, sema_priority_compare, NULL);
-  //     struct thread *top_thread = list_entry(wait_list_elem, struct thread, wait_elem);    /* getting the thread of the front node */
-  //     lock->holder->priority = top_thread->priority; /* top thread has the highest priority so we give that priority to the current lower priority thread */
-  //   }
-  // }
-  // sema_down (&lock->semaphore);
-  // lock->holder = thread_current (); 
 }
 
     
