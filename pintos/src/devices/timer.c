@@ -105,6 +105,9 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t numTicks) 
 {
+  static struct semaphore timer_sema;
+  sema_init(&timer_sema,1);
+  sema_down(&timer_sema);
   if(numTicks > 0) /* don't want to sleep for negative or zero ticks */
   {
     //enum intr_level old_level;
@@ -120,6 +123,7 @@ timer_sleep (int64_t numTicks)
     sema_down(&(cur_thread->thread_semaphore)); /* sema down after sending thread to sleep so thread doesnt block*/
     /* thread gets woken in interrupt handler */
   }
+  sema_up(&timer_sema);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
