@@ -61,13 +61,7 @@ void
 list_init (struct list *list)
 {
   ASSERT (list != NULL);
-  // /* Eros driving */
-  // struct lock init_lock; /* new lock for our list */
-  // /* initializing lock with diff pointers*/
-  // list->list_lock = init_lock; 
-  // list->head.node_lock = &init_lock;
-  // list->tail.node_lock = &init_lock;
-  // /* *** */
+
   list->head.prev = NULL;
   list->head.next = &list->tail;
   list->tail.prev = &list->head;
