@@ -373,17 +373,18 @@ thread_set_priority (int new_priority)
   if the next thread to run has a higher priority than the current thread
   we set the current threads priority to the new priority and then yield*/
 
-  lock_acquire(&set_pri_lock);
+  // lock_acquire(&set_pri_lock);
   struct thread *current = thread_current();  
   // if(current->priority > new_priority || next_thread_to_run()->priority > new_priority)
   // {
     current->priority = new_priority;
+    current->prev_priority = new_priority;
     thread_yield();
   // }
   // else if(current->priority < new_priority)// else all is good and we just set the new priority
   //   current->priority = new_priority;
   // list_sort(&ready_list, priority_compare, NULL);
-  lock_release(&set_pri_lock);
+  // lock_release(&set_pri_lock);
 }
 
 /* Returns the current thread's priority. */
@@ -511,7 +512,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   t->prev_priority = t->priority;
-  list_init(&t->lock_list); /* list of locks thread is trying to acquire */
+  list_init(&t->list_of_locks); /* list of locks thread is trying to acquire */
 
   t->donated = 0;
 
@@ -546,7 +547,7 @@ next_thread_to_run (void)
     return idle_thread;
   else
   {
-   // list_sort (&ready_list, priority_compare, NULL); /* sorting the ready list by priority */
+    list_sort (&ready_list, priority_compare, NULL); /* sorting the ready list by priority */
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
   }
 }
