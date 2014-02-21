@@ -217,32 +217,16 @@ lock_acquire (struct lock *lock)
   ASSERT (!lock_held_by_current_thread (lock));
 
   struct thread * current = thread_current();
+  int current_thread_priority = thread_current()->priority;
+
   if(lock->holder != NULL) //if holder is not null
   {
-    // current->tta_lock = lock; // the current thread's tta_lock is this lock
 
     if(current->priority > lock->holder->priority) //if current threads's pri > lock holder pri: donate pri
     {
-      lock->holder->priority = current->priority; //pri donated
-      // lock->holder->donated = 1; //setting donated val to TRUE
+      lock->holder->priority = current->priority; //priority donated to lock holder
 
-      /* list of all locks youve acquired */
-      /* inserting the lock */
-      /* we need to go through the list */
-      // if(!list_empty(&lock->holder->list_of_locks))
-      // {
-      //   struct list_elem *lock_list_elem = list_front(&lock->holder->list_of_locks);
-
-      //   struct lock *top_lock = list_entry(lock_list_elem, struct lock, lock_elem);
-      
-      //   // while(top_lock != NULL)
-      //   {
-          
-      //     // top_lock->holder->priority = current->priority;
-
-      //   }
-      // }
-    }
+    }//end outside if
   }
   sema_down (&lock->semaphore);
   list_push_back(&current->list_of_locks, &lock->lock_elem);
@@ -283,26 +267,39 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
    // if(thread_current()->donated)
-   // { 
-    list_remove(&lock->lock_elem);
-    // we want to assignt current thread to the most recently assigned pirority
-    int most_recently_donated_priority = thread_current()->prev_priority;
-    /* defautl assignment */
-    struct list_elem *e;
-    for (e = list_begin (&thread_current()->list_of_locks);
-     e != list_end (&thread_current()->list_of_locks); e = list_next (e))
-    {
-      struct lock *lock = list_entry (e, struct lock, lock_elem);
-      if (list_empty(&lock->semaphore.waiters)) continue;
-      struct thread *t = list_entry(list_front(&lock->semaphore.waiters), struct thread, elem);
-      if (t->priority > most_recently_donated_priority)
-        most_recently_donated_priority = t->priority;
-    }
-    thread_current()->priority = most_recently_donated_priority;
 
-    /* Now we want to find the max of the locks we are holding */
-    // thread_current()->donated = 0;
-   // }
+  list_remove(&lock->lock_elem);
+  
+  /* we want to assignt current thread to the most recently assigned priority */
+  int current_ori_priority = thread_current()->prev_priority;
+  
+  /* default assignment */
+  struct list_elem *lock_ele;
+  
+  lock_ele = list_begin(&thread_current()->list_of_locks);
+
+  while (lock_ele != list_end(&thread_current()->list_of_locks)) 
+  {
+    struct lock *lock = list_entry (lock_ele, struct lock, lock_elem);
+
+    if (list_empty(&lock->semaphore.waiters))
+    {
+        ;//skip and go to the next lock
+    }
+    else
+    {
+      struct list* thread_list = &lock->semaphore.waiters;
+      struct thread *temp = list_entry( thread_list->head.next, struct thread, elem);
+        
+      if (temp->priority > current_ori_priority)
+        current_ori_priority = temp->priority;
+    }
+
+    lock_ele = list_next (lock_ele);
+  }
+    
+  thread_current()->priority = current_ori_priority;
+
   lock->holder = NULL;
   sema_up (&lock->semaphore);
   thread_yield();
