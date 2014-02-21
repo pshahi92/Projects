@@ -111,6 +111,7 @@ struct thread
     int prev_priority;                  /* Old priority - used for priority donation
                                            inside lock acquire and lock release*/
     int donated;                        /* set to positive value if thread has donated priority*/
+    struct list lock_list;              /* list for locks that the thread is holding */
     /* **************** */
     /* **************** */
     

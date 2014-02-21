@@ -511,6 +511,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   t->prev_priority = t->priority;
+  list_init(&t->lock_list); /* list of locks thread is trying to acquire */
+
   t->donated = 0;
 
   // list_push_back (&all_list, &t->allelem);
