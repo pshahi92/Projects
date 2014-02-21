@@ -201,6 +201,40 @@ lock_init (struct lock *lock)
   sema_init (&lock->semaphore, 1);
 }
 
+
+donate_priority_to_lock(lock lock, int priority_donate)
+{
+  struct list * lock_list = &(lock->holder->list_of_locks);
+  
+  /* default assignment */
+  struct list_elem *lock_ele;
+  
+  lock_ele = list_begin(lock_list);
+
+  while (lock_ele != list_end(lock_list) 
+  {
+    struct lock *lock = list_entry (lock_ele, struct lock, lock_elem);
+
+    if (list_empty(&lock->semaphore.waiters))
+    {
+        ;//skip and go to the next lock
+    }
+    else
+    {
+      struct list* thread_list = &lock->semaphore.waiters;
+      struct thread *temp = list_entry( thread_list->head.next, struct thread, elem);
+        
+      if (temp->priority > current_ori_priority)
+        current_ori_priority = temp->priority;
+    }
+
+    lock_ele = list_next (lock_ele);
+  }
+    
+  thread_current()->priority = current_ori_priority;
+
+}
+
 /* Acquires LOCK, sleeping until it becomes available if
    necessary.  The lock must not already be held by the current
    thread.
@@ -219,15 +253,19 @@ lock_acquire (struct lock *lock)
   struct thread * current = thread_current();
   int current_thread_priority = thread_current()->priority;
 
-  if(lock->holder != NULL) //if holder is not null
+  struct lock current_lock = lock; 
+  
+  while(current_lock->holder != NULL) //if holder is not null
   {
 
     if(current->priority > lock->holder->priority) //if current threads's pri > lock holder pri: donate pri
     {
       lock->holder->priority = current->priority; //priority donated to lock holder
+      donate_priority_to_lock(current_lock);
+    }
 
-    }//end outside if
   }
+
   sema_down (&lock->semaphore);
   list_push_back(&current->list_of_locks, &lock->lock_elem);
   lock->holder = current;
