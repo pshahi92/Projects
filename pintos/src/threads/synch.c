@@ -213,15 +213,17 @@ lock_acquire (struct lock *lock)
 
   if(lock->holder != NULL)
   {
-    int lock_requester_pri = thread_get_priority(); // gettign prioritu of the lock requester
+    int lock_requester_pri = thread_get_priority(); // getting priority of the lock requester
 
     if(lock_requester_pri > lock->holder->priority)
-      lock->holder->priority = lock_requester_pri; //setting holder pirority to requeeter pri
+    {
+      lock->holder->priority = lock_requester_pri; //setting holder priority to requester priority
+      lock->holder->donated = 1;
+    }
   }
 
   sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
-
+  lock->holder = thread_current();
 }
 
     
@@ -256,7 +258,11 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-  // thread_current()->priority = thread_current()->prev_priority;
+  if(thread_current()->donated)
+  {
+    thread_current()->priority = thread_current()->prev_priority;
+    thread_current()->donated = 0;
+  }
   lock->holder = NULL;
   sema_up (&lock->semaphore);
   //thread_yield();

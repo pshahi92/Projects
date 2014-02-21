@@ -110,6 +110,7 @@ struct thread
     struct list_elem wait_elem;         /* elem for wait list */
     int prev_priority;                  /* Old priority - used for priority donation
                                            inside lock acquire and lock release*/
+    int donated;                        /* set to positive value if thread has donated priority*/
     /* **************** */
     /* **************** */
     
