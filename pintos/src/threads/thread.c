@@ -27,8 +27,6 @@
 /*Eros driving*/
 static struct list ready_list;
 struct list sleep_list; // = LIST_INITIALIZER(sleep_list);
-static struct lock set_pri_lock;
-
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -103,8 +101,6 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&sleep_list);
   list_init (&all_list);
-  /* lock initialization*/
-  lock_init(&set_pri_lock);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -221,6 +217,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+  /* Prithvi Driving */
   /* when we create a new thread we need to see if the running thread has a higher priority
   than the thread that is just created
   so we call yield and give control to scheduler so it can decide which thread to schedule */
@@ -332,18 +329,14 @@ thread_yield (void)
   enum intr_level old_level;
   
   ASSERT (!intr_context ());
-
-  // if( next_thread_to_run())
-    // if (cur->priority < next_thread_to_run()->priority)
-      old_level = intr_disable ();
-      if (cur != idle_thread)
-      { 
-        // list_push_back (&ready_list, &cur->elem);
-        list_insert_ordered (&ready_list, &cur->elem,
-                        priority_compare, NULL);
-      }
-      cur->status = THREAD_READY;
-      schedule ();
+  old_level = intr_disable ();
+  if (cur != idle_thread)
+  { 
+    list_insert_ordered (&ready_list, &cur->elem,
+                    priority_compare, NULL);
+  }
+  cur->status = THREAD_READY;
+  schedule ();
   intr_set_level (old_level);
 }
 
@@ -353,9 +346,7 @@ void
 thread_foreach (thread_action_func *func, void *aux)
 {
   struct list_elem *e;
-
   ASSERT (intr_get_level () == INTR_OFF);
-
   for (e = list_begin (&all_list); e != list_end (&all_list);
        e = list_next (e))
     {
@@ -368,23 +359,20 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  /* Abraham driving */
+  /* fixing the race condition */
+  struct thread *current = thread_current();
+      current->priority = new_priority;
   
-
-  struct thread *current = thread_current();  
-
-  
-  current->priority = new_priority;
-
-
   current->prev_priority = new_priority;
   thread_yield();
-
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
+  /* Abraham driving */
   /* returning priority */
   return thread_current()->priority;
 }
@@ -507,6 +495,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   t->prev_priority = t->priority;
   list_init(&t->list_of_locks); /* list of locks thread is trying to acquire */
+  list_init(&t->owned_locks);
 
   t->donated = 0;
 

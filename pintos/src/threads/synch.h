@@ -16,7 +16,7 @@ void sema_down (struct semaphore *);
 bool sema_try_down (struct semaphore *);
 void sema_up (struct semaphore *);
 void sema_self_test (void);
-
+/* Abrahamd driving */
 bool sema_priority_compare(struct list_elem *a, struct list_elem *b, void *aux);
 bool cv_priority_compare(struct list_elem *a, struct list_elem *b, void *aux);
 
@@ -27,6 +27,7 @@ struct lock
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
     struct list_elem lock_elem; /* element for the lock list so we can add the lock to lock_list */
+    struct list threads_wait_onL; /* list of threads waiting on lock */
   };
 
 void lock_init (struct lock *);
