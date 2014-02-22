@@ -200,17 +200,19 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  
+  /* Abraham driving */
   ticks++;
   if(!list_empty(&sleep_list))
   {
     struct list_elem *sleep_list_elem = list_front(&sleep_list);    /* getting the front node of the sleeping list */
     struct thread *top_thread = list_entry(sleep_list_elem, struct thread, wait_elem);    /* getting the thread of the front node */
     int64_t target_tick = top_thread->sleep_timer;    /* intializing the target tick we want */
+    /* Prithvi driving */
     while(ticks >= target_tick)    /* checking to see if the sleep_timer inside the thread is equal to ticks */
     {
       struct list_elem *removed_node = list_remove(sleep_list_elem);      /* removing the sleep list elem node from sleep list */
       sema_up(&(top_thread->thread_semaphore));    /* sema up puts into ready queue  */
+      /* Eros driving */
       if(!list_empty(&sleep_list))    /* if the list is not empty we want to continue to traverse list for all matching target_ticks */
       {
         sleep_list_elem = list_front(&sleep_list);    /* reinitializing sleep_list_elem to new front node of sleeping list*/
