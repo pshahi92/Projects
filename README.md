@@ -3,9 +3,9 @@
 
 
 ## Documentation Link
-* [quicknav2src](https://github.com/pshahi92/Projects/tree/master/pintos/src)
-* [quicknav2up](https://github.com/pshahi92/Projects/tree/master/pintos/src/userprog)
-* [qnav2threads](https://github.com/pshahi92/Projects/tree/master/pintos/src/threads)
+* [src](https://github.com/pshahi92/Projects/tree/master/pintos/src)
+* [userprog](https://github.com/pshahi92/Projects/tree/master/pintos/src/userprog)
+* [threads](https://github.com/pshahi92/Projects/tree/master/pintos/src/threads)
 
 
 ## Project 2: User Programs
