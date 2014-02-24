@@ -1,6 +1,13 @@
 # CS439: Principles of Computer Systems
 ## Spring 2014 Project Information
 
+
+## Documentation Link
+* [quicknav2src](https://github.com/pshahi92/Projects/tree/master/pintos/src)
+* [quicknav2up](https://github.com/pshahi92/Projects/tree/master/pintos/src/userprog)
+* [qnav2threads](https://github.com/pshahi92/Projects/tree/master/pintos/src/threads)
+
+
 ## Project 2: User Programs
 [Project page](http://www.cs.utexas.edu/~ans/classes/cs439/projects/pintos/WWW/pintos_3.html) <br>
 **Objectives:** Understanding how user programs interact with the OS <br>
@@ -10,11 +17,6 @@ make turnin_user (in src directory) <br>
 *turnin -submit ccoleman user_design user_design.txt* <br>
 **Partners:** <br>
 > Abraham Munoz, Eros Smith, Kim Yu Ng, Prithvi Shahi
-
-## Documentation Link
-* [quicknav2src](https://github.com/pshahi92/Projects/tree/master/pintos/src)
-* [quicknav2up](https://github.com/pshahi92/Projects/tree/master/pintos/src/userprog)
-* [qnav2threads](https://github.com/pshahi92/Projects/tree/master/pintos/src/threads)
 
 
 ## Project 1: Threads
