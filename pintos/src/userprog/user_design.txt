@@ -17,7 +17,7 @@ Email:
 Unique Number:
 
 
-Slip days used on this project:
+Slip days used on this project: 0
 
 ---- GROUP ----
 
@@ -96,6 +96,13 @@ Ranking (scale below):
 ---- RATIONALE ----
 
 >> A3: Why does Pintos implement strtok_r() but not strtok()?
+
+strtok_r is a thread safe version of strtok on POSIX systems
+strtok_r takes an extra parameter, q pointer to a char * where it stores its
+current state.
+The strtok_r() function is a reentrant version strtok(). 
+The saveptr argument is a pointer to a char * variable that is used internally by strtok_r() in order to 
+maintain context between successive calls that parse the same string.
 
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
