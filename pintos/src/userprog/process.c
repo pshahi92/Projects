@@ -40,6 +40,8 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  //everytime a thread is created start_process is called, which in turn calls load
+  //thread create runs through start_process
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -60,6 +62,9 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
+  //calling load from inside start_process
+  //inside load the stack is set up
+
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -214,6 +219,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
+  //creates stack
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
@@ -435,6 +441,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
+  //we have to pass the cmdline all the way into setup_stack and parse here!!
+
   uint8_t *kpage;
   bool success = false;
 
