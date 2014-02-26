@@ -20,6 +20,8 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static void parseline (void **esp, const char *file_name); //parsing the command line
+//might need to change return type
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -329,6 +331,26 @@ load (const char *file_name, void (**eip) (void), void **esp)
 }
 
 /* load() helpers. */
+
+void parseline (void **esp, const char *file_name)
+{
+  //Kim Driving
+  char *cmd_copy; //strtok_r deletes the string so we need a copy to store file_name
+  char *str_arg; //this is to check the return 
+  char **saveptr;
+  int[128] argv; //array to store arguments
+  
+  cmd_copy = palloc_get_page(0);
+  strlcpy(cmd_copy, file_name, PGSIZE);
+  //char *strtok_r(char *str, const char *delim, char **saveptr)
+  while((str_arg = strtok_r(cmd_copy, 32, saveptr)) != NULL ) //strrok_r returns a null when we reach the end of the cmdline argument
+  {
+    esp -= strlen(str_arg); //decrementing the esp pointer by the lenght of the argument we received in cmdline
+    esp--; //strlen will not account for the lenght of the space so we have to decrement once more
+    //now we have to store the data and the address inside a data structure, we will use an array
+
+  }
+}
 
 static bool install_page (void *upage, void *kpage, bool writable);
 
