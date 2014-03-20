@@ -22,11 +22,8 @@
 
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
-
-/* What we've added */
-/*Eros driving*/
 static struct list ready_list;
-struct list sleep_list; // = LIST_INITIALIZER(sleep_list);
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -73,11 +70,7 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-
-void Schedule(void)
-{
-  schedule();
-}
+struct thread * search_thread_tid(tid);
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -99,14 +92,31 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
-  list_init (&sleep_list);
   list_init (&all_list);
+  // list_init (&list_childThread); /*added*/
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+}
+
+struct thread * search_thread_tid(tid)
+{
+  struct list_elem * node;
+
+  for ( node = list_begin(&all_list);
+        node != list_end(&all_list);
+        node = list_next(node) )
+  {
+    struct thread * temp = list_entry(node, struct thread, allelem);
+
+    if(temp->tid == tid)
+      return temp;
+  }
+
+  return NULL;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -217,11 +227,7 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-  /* Prithvi Driving */
-  /* when we create a new thread we need to see if the running thread has a higher priority
-  than the thread that is just created
-  so we call yield and give control to scheduler so it can decide which thread to schedule */
-  thread_yield();
+
   return tid;
 }
 
@@ -259,9 +265,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  //list_push_back (&ready_list, &t->elem);
-  list_insert_ordered (&ready_list, &t->elem,
-                     priority_compare, NULL);
+  list_push_back (&ready_list, &t->elem);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -329,12 +333,10 @@ thread_yield (void)
   enum intr_level old_level;
   
   ASSERT (!intr_context ());
+
   old_level = intr_disable ();
-  if (cur != idle_thread)
-  { 
-    list_insert_ordered (&ready_list, &cur->elem,
-                    priority_compare, NULL);
-  }
+  if (cur != idle_thread) 
+    list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -346,7 +348,9 @@ void
 thread_foreach (thread_action_func *func, void *aux)
 {
   struct list_elem *e;
+
   ASSERT (intr_get_level () == INTR_OFF);
+
   for (e = list_begin (&all_list); e != list_end (&all_list);
        e = list_next (e))
     {
@@ -359,29 +363,21 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  /* Abraham driving */
-  /* fixing the race condition */
-  struct thread *current = thread_current();
-      current->priority = new_priority;
-  
-  current->prev_priority = new_priority;
-  thread_yield();
+  thread_current ()->priority = new_priority;
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  /* Abraham driving */
-  /* returning priority */
-  return thread_current()->priority;
+  return thread_current ()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
 void
 thread_set_nice (int nice UNUSED) 
 {
-  // thread_current()->
+  /* Not yet implemented. */
 }
 
 /* Returns the current thread's nice value. */
@@ -493,15 +489,18 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  t->prev_priority = t->priority;
-  list_init(&t->list_of_locks); /* list of locks thread is trying to acquire */
-  list_init(&t->owned_locks);
 
-  t->donated = 0;
+    /*Added */
+  //Initialize semaphore
+  sema_init ( &(t->wait_sema_child), 0);
+  sema_init ( &(t->wait_sema_zombie), 0);
 
-  // list_push_back (&all_list, &t->allelem);
-  list_insert_ordered (&all_list, &t->allelem,
-                     priority_compare, NULL);
+  //Initialize the list here
+  t->file_descriptor_num = 2;
+  list_init ( &(t->list_childThread) );
+  list_init ( &(t->list_openfile) );
+  
+  list_push_back (&all_list, &t->allelem);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -522,17 +521,13 @@ alloc_frame (struct thread *t, size_t size)
    empty.  (If the running thread can continue running, then it
    will be in the run queue.)  If the run queue is empty, return
    idle_thread. */
-/* Abe driving */
 static struct thread *
 next_thread_to_run (void) 
 {
   if (list_empty (&ready_list))
     return idle_thread;
   else
-  {
-    list_sort (&ready_list, priority_compare, NULL); /* sorting the ready list by priority */
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
-  }
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -592,7 +587,6 @@ static void
 schedule (void) 
 {
   struct thread *cur = running_thread ();
-  
   struct thread *next = next_thread_to_run ();
   struct thread *prev = NULL;
 
@@ -622,15 +616,3 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-
-/* Comparator- to compare two threads based on run priority*/
-bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux)
-{
-  /* Eros driving */
-  /* getting your thread pointers using list_entry */
-  struct thread *thread_a = list_entry(a, struct thread, elem);
-  struct thread *thread_b = list_entry(b, struct thread, elem);
-
-  //sorts on priorities
-  return ((thread_b->priority) < (thread_a->priority));
-}

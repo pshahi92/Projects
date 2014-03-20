@@ -20,7 +20,7 @@
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-static void parseline (void **esp, const char *file_name); //parsing the command line
+static void *parseline (void *esp, const char *file_name); //parsing the command line
 //might need to change return type
 
 /* Starts a new thread running a user program loaded from
@@ -44,8 +44,22 @@ process_execute (const char *file_name)
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   //everytime a thread is created start_process is called, which in turn calls load
   //thread create runs through start_process
+
+  struct thread * child_thread;
+  child_thread = search_thread_tid(tid);
+
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+  else{
+    
+    if(child_thread)
+    {
+      child_thread->parent = thread_current();
+      list_push_back(&(thread_current()->list_childThread), &(child_thread->child_elem));
+    }
+    else
+      return -1;
+  }
   return tid;
 }
 
@@ -67,9 +81,9 @@ start_process (void *file_name_)
   //calling load from inside start_process
   //inside load the stack is set up
 
-
   /* If load failed, quit. */
   palloc_free_page (file_name);
+
   if (!success) 
     thread_exit ();
 
@@ -98,10 +112,66 @@ process_wait (tid_t child_tid UNUSED)
   //Prithvi driving
   //implementing infinite loop (that waits forever)
   //Pintos will hang forever but we will get to see output from child processes
-  while(1)
-  {
-    ;
+  // while(1){
+  //   ;
+  // }
+if (child_tid == TID_ERROR)
+    return TID_ERROR;
+
+  struct thread *current = thread_current ();
+
+  /* taking the current aka parent thread */
+
+  /* we are blocking the parent process on the child process's semaphore
+   * because we are implementing the wait the parent has to do until the child
+   * process terminates inside wait
+   */
+  struct list_elem *node = list_begin( &(current->list_childThread) );
+  /* getting the front of the list for list traversal aka finding matching
+   * child_tid
+   */
+
+  struct thread *child_t;
+  int found = 0; //have we found the child thread?
+
+  /* traversing our child thread list */
+  while (node != list_end( &(current->list_childThread) ) ) {
+    /* getting the thread from the list element*/
+    child_t = list_entry (node, struct thread, child_elem);
+    
+    /* checking tid */
+    if(child_t->tid == child_tid) 
+    {
+      /* found matching child_tid */
+      break;
+    }
+
+    node = list_next( node );
   }
+
+  int child_status;
+
+  if(child_t){
+    /* since we have found our child thread, we wait on the semaphore to wait
+     * for the child process to finish
+     */
+
+    ASSERT (current != NULL);
+    sema_down( &(current->wait_sema_child) );
+    
+    child_status = child_t->exit_status;
+
+    ASSERT (current != NULL);
+    sema_up( &(current->wait_sema_zombie) );
+
+    ASSERT (current != NULL);
+    sema_down( &(current->wait_sema_child) );
+  }
+  else
+    child_status = -1;
+
+
+  return child_status;
 }
 
 /* Free the current process's resources. */
@@ -208,7 +278,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, const char *file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -235,8 +305,18 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  //Kim Driving
+  //Grab the executable first argument
+  char executable_prog[128];
+  char file_name_duplicate[128];
+
+  memcpy(file_name_duplicate, file_name, strlen(file_name) + 1);
+  memcpy(executable_prog, file_name_duplicate, strlen(file_name) + 1);
+  strtok_r(executable_prog, " ", &file_name_duplicate);
+
   /* Open executable file. */
-  file = filesys_open (file_name);
+  // file = filesys_open (file_name);
+  file = filesys_open (executable_prog);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -316,7 +396,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, file_name))
     goto done;
 
   /* Start address. */
@@ -332,25 +412,86 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
 /* load() helpers. */
 
-void parseline (void **esp, const char *file_name)
+void *parseline (void *esp, const char *file_name)
 {
   //Prithvi Driving
   char *cmd_copy; //strtok_r deletes the string so we need a copy to store file_name
   char *str_arg; //this is to check the return 
-  char **saveptr;
-  int[128] argv; //array to store arguments
+  char *saveptr; //remaining argument
+  int argumentV[128]; //array to store arguments
+  int numArgument = 0;
 
   cmd_copy = palloc_get_page(0);
-  strlcpy(cmd_copy, file_name, PGSIZE);
-  //char *strtok_r(char *str, const char *delim, char **saveptr)
-  while((str_arg = strtok_r(cmd_copy, 32, saveptr)) != NULL ) //strrok_r returns a null when we reach the end of the cmdline argument
-  {
-    esp -= strlen(str_arg); //decrementing the esp pointer by the lenght of the argument we received in cmdline
-    esp--; //strlen will not account for the lenght of the space so we have to decrement once more
-    //now we have to store the data and the address inside a data structure, we will use an array
-    //Kim driving
+  memcpy(cmd_copy, file_name, (strlen(file_name)+1));
+  str_arg = strtok_r(cmd_copy, " ", &saveptr);
 
+  if(cmd_copy != NULL)
+    strlcpy(thread_current()->name, str_arg, strlen(str_arg) + 1 );
+
+  // printf("Print this out \n");
+  // printf("Other argument:  _----->            %s\n", str_arg);
+
+  while( str_arg != NULL ) //strrok_r returns a null when we reach the end of the cmdline argument
+  {
+    esp -= (strlen(str_arg) + 1 ); //decrementing the esp pointer by the lenght of the argument we received in cmdline
+    //strlen will not account for the lenght of the space so we have to decrement once more
+    //now we have to store the data and the address inside a data structure, we will use an array
+    
+    //Kim driving
+    memcpy(esp, str_arg, (strlen(str_arg) + 1) ); //push into stack
+    // printf("THis is current             -> %s\n", esp);
+
+    argumentV[numArgument] = esp; //get the address of argument
+    numArgument++; //number of argument
+
+    str_arg = strtok_r(NULL, " ", &saveptr); // Do not need to grab the cmd_copy again
+    // printf("Other argument i :  _----->            %s\n", str_arg, numArgument);
   }
+
+  //push word align
+  uint8_t memPadding = ((unsigned int ) esp ) % 4;
+  esp -= memPadding;
+
+  // printf("\nTrying to get word_align value:            %s\n", esp);
+
+  //push a zero
+  esp -= 4;
+  *(int*)esp = 0;
+
+  // printf("\nTrying to push dummy into esp:            %s\n\n\n", esp);
+  
+  int i = numArgument -1 ;
+  
+  while (i >= 0){
+    esp-= 4;
+    *(int*)esp = argumentV[i]; 
+    // memcpy(esp, &argumentV[i], 4);
+    
+    // printf("\nPush in backward esp:            %p     %x \n\n\n", esp, argumentV[i]);
+    //push argv
+    if( i == 0 ){
+      // printf("we are here eeeee \n");
+      esp-= 4;
+      
+      // printf("I want this address so much           %p\n", (esp+4));
+      *(int*)esp = esp + 4;
+    }
+
+    i--;
+  }
+
+  //push argc
+  esp-= 4;
+  memcpy(esp, &numArgument, 4);
+
+  //push retrun address
+  esp-= 4;
+  *(int*)esp = 0;
+
+  //pintos --filesys-size=2 -p ../../examples/abin/ls -a abin/ls -- -f -q run 'abin/ls -l foo bar'
+  // hex_dump(esp, esp, PHYS_BASE - esp, 1);
+
+  return esp;
 }
 
 static bool install_page (void *upage, void *kpage, bool writable);
@@ -462,7 +603,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, const char *file_name) 
 {
   //we have to pass the cmdline all the way into setup_stack and parse here!!
 
@@ -473,8 +614,10 @@ setup_stack (void **esp)
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE - 12; //Prithvi driving
+      if (success){
+        *esp = PHYS_BASE; //Prithvi driving
+        *esp = parseline(*esp, file_name);
+      }
       else
         palloc_free_page (kpage);
     }

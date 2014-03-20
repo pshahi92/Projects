@@ -87,11 +87,61 @@ Ranking (scale below):
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+//inside parseline
+1. char *cmd_copy; //strtok_r deletes the string so we need a copy to store file_name
+
+2. char *str_arg; //this is to check the return 
+
+3. char *saveptr; //remaining argument, this is necessary store remainder string from strtok_r func. call
+
+4. int argumentV[128]; //array to store arguments; stores pointers to esp
+
+5. int numArgument = 0; //simple int to iterate through array of arguments
+
+6. uint8_t memPadding = ((unsigned int ) esp ) % 4; //memory alignment (mod 4 bytes in 32 bit machine)
+	//this int is to mod the address so that you get correct padding when doing hexdump
+
+//inside load
+7. char executable_prog[15];  //The file system limits file names to 14 characters; using an array to store chars
+
 ---- ALGORITHMS ----
 
->> A2: Briefly describe how you implemented argument parsing.  How do
->> you arrange for the elements of argv[] to be in the right order?
+>> A2: Briefly describe how you implemented argument parsing.  
 >> How do you avoid overflowing the stack page?
+
+1. First we copy the cmdline arg into another char * string called cmd_copy.
+To do so, we allocate memory using cmd_copy = palloc_get_page(0) then use the
+memcpy function to deep copy the cmdline arg (file_name) to the new string.
+
+	Note: we have to make a copy because in the next step we use strtok_r to 
+	parse the string. We don't want to modify the original argument passed to us
+	because what strtok_r does is it deletes the string argument you pass to it.
+
+2. Now we have to parse the copied string in a while loop. Create a new string called 
+str_arg to check the return value of strtok_r and use while(str_arg != NULL) to execute 
+the while loop. Inside the loop we will just parse the string. 
+
+3. Esp initially is set to the phys_base, which is between the kernel and the stack. 
+Therefore, we must decrement esp in order to push each argument into the stack.
+
+4. We then push the arguments onto the stack using memcpy until the string argument is NULL,
+which is the end of command line.
+
+5. After pushing the arguments onto the stack we must align the memory of esp by 
+adjusting the pointer of esp. Then we push the address dummy 0 into the stack. We 
+then push the addresses of the arguments.
+
+6. We then have to push the last address of the address of pushed argument. 
+
+7. We then push the number of arguments. 
+
+8. We then push the void pointer as a return address which can be random. 
+
+>> How do you arrange for the elements of argv[] to be in the right order?
+We pushed the arguments into the stack from left to right even though the order 
+in which the arguments get pushed dont matter.
+
+We pushed the address backwards.
 
 ---- RATIONALE ----
 
@@ -107,6 +157,27 @@ maintain context between successive calls that parse the same string.
 >> A4: In Pintos, the kernel separates commands into a executable name
 >> and arguments.  In Unix-like systems, the shell does this
 >> separation.  Identify at least two advantages of the Unix approach.
+
+Need to change: */
+
+The first advantage of Unix approach is that it is much safer and simpler to 
+use shell-based parsing operations. This way shell could help check any 
+unsafe command line before they arrive at kernel directly, and thus reduce
+the complexity of kernel operations.
+
+In Unix-like systems, the separation between executable name and arguments 
+enables more complex semantics such as redirection, pipeline in shell 
+operations. With Pintos' approach, we would have to add a lot of code in 
+kernel to achieve similar goals, and this violates the laying design principle
+commonly used in computer system.
+
+Moreover, combined with PATH environment variable, Unix-like shell gives more
+flexibility in looking for executable files. Revolving pathname and looking 
+for files tend to be expensive, and it is best left to external programs such 
+as shell to finish the task as Unix-like systems did. With Pintos' approach,
+the kernel would have to undertake the task to look for a file during the 
+initialization of a process.
+*/
 
 			     SYSTEM CALLS
 			     ============

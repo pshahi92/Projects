@@ -6,12 +6,6 @@
 #include <stdint.h>
 #include <threads/synch.h>
 
-
-/* What we've added */
-struct list sleep_list;
-/* Comparator- to compare two threads based on run priority*/
-bool priority_compare(struct list_elem *a, struct list_elem *b, void *aux);
-void Schedule(void);
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -94,31 +88,35 @@ struct thread
     /* Owned by thread.c. */
     tid_t tid;                          /* Thread identifier. */
     enum thread_status status;          /* Thread state. */
-    char name[16];                      /* Name (for debugging purposes). */
+    char name[64];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int nice_value;                     /* Nice value of the thread */
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-    /* What we've added */
-    /* **************** */
-    int64_t sleep_timer;                /* Wake up thread to ready state after ticks > sleep_timer*/  
-    struct semaphore thread_semaphore;         /* semaphore inside our thread */
-    struct list_elem wait_elem;         /* elem for wait list */
-    int prev_priority;                  /* Old priority - used for priority donation
-                                           inside lock acquire and lock release*/
-    int donated;                        /* set to positive value if thread has donated priority*/
-    /* Abraham driving */
-    struct list list_of_locks;          /* list of locks thread is trying to acquire */
-    struct list owned_locks;
-    struct lock *holded_lock;           
-    struct lock *tta_lock;              //trying to acquire this lock
-    /* **************** */
-    /* **************** */
+    /* list of children for threads*/
+    struct list list_childThread;
+    struct list_elem child_elem;       /* list of child elem */
+
+    struct semaphore wait_sema_child;
+    struct semaphore wait_sema_zombie;
+    struct thread *parent;              /* pointer to thread's parent
+                                         * will be set in exec()
+                                         */
+    struct thread *waiting_child;
     
+    struct lock mylock;
+    struct lock wait_child_lock;
+
+    int terminate_status;
+    int wait_status;
+    
+    struct list list_openfile;            /* list of open files for a process */
+    int file_descriptor_num;
+    uint32_t exit_status;
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -127,6 +125,24 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+struct file_description
+{
+  struct list_elem elem_openfile;
+  struct file * open_file;
+  int assigned_fd;
+};
+
+// struct child_struct {
+//   struct list_elem child_elem;
+//   struct thread * childThread;
+
+//   tid_t child_id;
+  
+//   int exit_or_not;
+//   int exit_status;
+//   int waiting_or_not;
+// };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
