@@ -93,8 +93,9 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
       
       case SYS_EXEC:                   /* Start another process. */
-        if( !safe_esp(pointer + 1) )
+        if( !safe_esp(pointer + 1) ){
           return;
+        }
 
         cmd_line =  (char*)*( pointer + 1);
         _exec(cmd_line, f);
@@ -420,9 +421,7 @@ static void _filesize(int fd, struct intr_frame *f UNUSED)
 }
 
 static void _exec(const char *cmd_line, struct intr_frame *f UNUSED)
-{
-  struct thread* current = thread_current();
-  
+{  
   f->eax = process_execute(cmd_line);
 }
 
@@ -476,11 +475,26 @@ static void _tell(int fd, struct intr_frame *f UNUSED)
 static void _close(int fd)
 {
   struct thread * current = thread_current();
-  struct file * file;
-  file = search_file(current, fd);
+  struct list_elem * node ;
+  struct file_description * fd_obj;
+
   
-  if(file)
-    file_close (file);
+  for ( node = list_begin( &(current->list_openfile) );
+        node != list_end (&(current->list_openfile) ); 
+        node = list_next(node) )
+  {
+       // file = list_entry (node, struct thread, elem_openfile);
+      fd_obj = list_entry (node, struct file_description, elem_openfile);
+
+       if(fd_obj->assigned_fd == fd){
+          file_close(fd_obj->open_file);
+          list_remove (node);
+          palloc_free_page (fd_obj);
+
+          return;
+       }
+  }
+
 }
 
 static struct file* search_file (struct thread * this, int fd){
