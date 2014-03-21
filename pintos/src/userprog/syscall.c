@@ -17,7 +17,7 @@ static void syscall_handler (struct intr_frame *);
 
 static int safe_esp (const void *pointer);
 static void _halt (void);
-static void _exit (int status);
+// static void _exit (int status);
 static void _exec (const char *cmd_line, struct intr_frame *f UNUSED);
 static void _wait (pid_t pid, struct intr_frame *f UNUSED);
 static void _create (const char *file, unsigned initial_size, struct intr_frame *f UNUSED);
@@ -69,7 +69,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   int status, pid, sys_num, fd;
   char *cmd_line, *file;
   void *buffer;
-  off_t size;
+  unsigned size;
   unsigned position, initial_size;
 
   if( safe_esp(pointer) )
@@ -228,7 +228,7 @@ static void _halt(void)
   shutdown_power_off();
 }
 
-static void _exit(int status)
+void _exit(int status)
 {
   // printf("***************\n");
   // printf("entered exit\n");
@@ -269,14 +269,14 @@ static void _exit(int status)
   struct list_elem *node;
   struct list_elem *ahead;
 
-  for (node = list_begin (&current->list_openfile);
-       node != list_end (&current->list_openfile);
-       node = list_next (node))
-    {
-      struct file_description * fd_node = list_entry (node, struct file_description, elem_openfile);
+  // for (node = list_begin (&current->list_openfile);
+  //      node != list_end (&current->list_openfile);
+  //      node = list_next (node))
+  //   {
+  //     struct file_description * fd_node = list_entry (node, struct file_description, elem_openfile);
 
-      _close (fd_node->assigned_fd);
-    }
+  //     _close (fd_node->assigned_fd);
+  //   }
 
   printf ("%s: exit(%d)\n", current->name, current->exit_status);
   
@@ -309,12 +309,19 @@ static int _read(int fd, void *buffer, unsigned size)
 
     return size;
   }
-  else
+  else if(fd > 1)
   {
+    int len;
+
     file = search_file(current, fd);
-    return file_read (file, buffer, size);
+
+    if(file)
+      len = file_read (file, buffer, size);
+
+    return len;
   }
 
+  return -1;
 }
 
 
@@ -423,7 +430,7 @@ static void _exec(const char *cmd_line, struct intr_frame *f UNUSED)
  */
 static void _wait(pid_t pid, struct intr_frame *f UNUSED)
 {
-
+   
    f->eax = process_wait(pid);
 }
 
