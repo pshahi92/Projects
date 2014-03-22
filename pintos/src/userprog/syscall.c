@@ -231,58 +231,58 @@ static void _halt(void)
 
 void _exit(int status)
 {
-  // printf("***************\n");
-  // printf("entered exit\n");
   struct thread *current = thread_current();
-  struct thread *child_t;
+  // struct thread *child_t;
 
-  struct list_elem *mov;
+  // struct list_elem *mov;
 
   /* traversing our child thread list */
-  for( mov = list_begin( &(current->list_childThread) );
-       mov != list_end( &(current->list_childThread) );
-       mov = list_next( mov ) )
-  {
-    /* getting the thread from the list element*/
-    child_t = list_entry (mov, struct thread, child_elem);
+  // for( mov = list_begin( &(current->list_childThread) );
+  //      mov != list_end( &(current->list_childThread) );
+  //      mov = list_next( mov ) )
+  // {
+  //    getting the thread from the list element
+  //   child_t = list_entry (mov, struct thread, child_elem);
     
-    /* checking tid */
-    if(child_t->tid == child_t->parent->tid)
-      break;
-  }
+  //   /* checking tid */
+  //   if(child_t->tid == child_t->parent->tid)
+  //     break;
 
-  // //Child exited
-  // child_t->terminate_status = 1;
+  // }
 
-  //Child exit status
+  // if( mov == list_end( &(current->list_childThread) ) )
+  //   if(child_t->tid != child_t->parent->tid)
+  //     return;
 
-  ASSERT (child_t != NULL)
+  // ASSERT (child_t != NULL)
 
   current->exit_status = status;
-  list_remove( &current->child_elem );
 
-  //Sema up
-  sema_up( &(current->parent->wait_sema_child) );
-  sema_down(  &(current->parent->wait_sema_zombie) );
+  if(current->parent->wait_status)
+  {
+    list_remove( &current->child_elem );
 
+    //Sema up
+    // printf("0. in exit method before semaup on sema child wait status is 1\n\n");
+    sema_up( &(current->wait_sema_child) );
+    
+    // printf("1. in exit method before semadown on sema zombie wait status is 1\n\n");
+    sema_down(  &(current->wait_sema_zombie) );
+    
+    // printf("2. in exit method before semaup on sema child wait status is 1\n\n");
+    sema_up( &(current->wait_sema_child) );
+    
+    current->parent->wait_status = 0;
+  }
 
-  //Close the file
-  struct list_elem *node;
-  struct list_elem *ahead;
+  // printf("Executable file trying to close GG.com \n\n");
+  
+  // if(current->executable_file)
+  //   file_close( current->executable_file );
 
-  // for (node = list_begin (&current->list_openfile);
-  //      node != list_end (&current->list_openfile);
-  //      node = list_next (node))
-  //   {
-  //     struct file_description * fd_node = list_entry (node, struct file_description, elem_openfile);
-
-  //     _close (fd_node->assigned_fd);
-  //   }
-
+  // printf("Executable file trying to close GG.com AFTER GG\n\n");
+  
   printf ("%s: exit(%d)\n", current->name, current->exit_status);
-  
-  
-  sema_up( &(current->parent->wait_sema_child) );
   
   thread_exit();
 }
@@ -355,25 +355,32 @@ static int _write(int fd, const void *buffer, off_t size)
       // {
       //   int offset = 0;
         
-      //   // while (size > max_buffer)
-      //   // {
-      //   //   putbuf (buffer +, max_buffer);
-      //   //   offset += max_buffer;
-      //   //   size -= max_buffer;
-      //   // }
+      //   while (size > max_buffer)
+      //   {
+      //     putbuf (buffer +, max_buffer);
+      //     offset += max_buffer;
+      //     size -= max_buffer;
+      //   }
 
       //   putbuf (buffer, size);
       //   offset += size;
       //   return offset;
       // }
 
+      return 0;
+
   }
-  else{
+  else
+  {
 
     file = search_file(current, fd);
-    
+
     if(file)
-      file_write (file, buffer, size);
+    {
+      // file_deny_write(current->executable_file);
+      size = file_write (file, buffer, size);
+    }
+    
 
     return size;
   }
@@ -421,7 +428,7 @@ static void _filesize(int fd, struct intr_frame *f UNUSED)
 }
 
 static void _exec(const char *cmd_line, struct intr_frame *f UNUSED)
-{  
+{
   f->eax = process_execute(cmd_line);
 }
 

@@ -48,14 +48,23 @@ process_execute (const char *file_name)
   struct thread * child_thread;
   child_thread = search_thread_tid(tid);
 
+  
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   else{
+    // file_close(thread_current()->executable_file);
+    // if(filesys_open(file_name) == NULL)
+    //   return -1;
     
     if(child_thread)
     {
+      // child_thread->exit_status = -1;
       child_thread->parent = thread_current();
       list_push_back(&(thread_current()->list_childThread), &(child_thread->child_elem));
+    
+      // printf("SEMA DOWN AFTER THREAD CREATE before sema down\n\n\n");
+      // sema_down( &thread_current()->wait_sema_child );
+      // printf("SEMA DOWN AFTER THREAD CREATE AFTER sema down\n\n\n");
     }
     else
       return -1;
@@ -77,15 +86,31 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+
+
   success = load (file_name, &if_.eip, &if_.esp);
+  
+  struct thread * current = thread_current();
   //calling load from inside start_process
   //inside load the stack is set up
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
+  
+  if (!success)
+  {
+    // current->success_code = 0;
+    // printf("Start process SEMA UP FALSE\n");
+    // sema_up( &current->parent->wait_sema_child);
 
-  if (!success) 
     thread_exit ();
+  }
+  // else
+  // {
+    // current->success_code = 1;
+    // printf("Start process SEMA UP TRUE\n");
+    // sema_up( &current->parent->wait_sema_child);
+  // }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -151,24 +176,41 @@ if (child_tid == TID_ERROR)
 
   int child_status;
 
-  if(child_t){
+  if(child_t->tid == child_tid)
+  {
     /* since we have found our child thread, we wait on the semaphore to wait
      * for the child process to finish
      */
 
     ASSERT (current != NULL);
-    sema_down( &(current->wait_sema_child) );
+    // if(current->parent->tid != child_t->tid)
+    current->wait_status = 1;
+    // printf("0. in WAIT method before semadown on sema child wait status is 1\n\n");
+    sema_down( &(child_t->wait_sema_child) );
     
+    
+    // printf("Thisss is the sema down of current child semaphore contained\n");
     child_status = child_t->exit_status;
 
     ASSERT (current != NULL);
-    sema_up( &(current->wait_sema_zombie) );
+    // if(current->parent->tid == child_t->tid)
+    // printf("1. in WAIT method before semaUP on sema zombie wait status is 1\n\n");
+    sema_up( &(child_t->wait_sema_zombie) );
+    // printf("Thisss is the sema down of zombies by current thread \n");
 
     ASSERT (current != NULL);
-    sema_down( &(current->wait_sema_child) );
+    // if(current->parent->tid != child_t->tid)
+    // printf("2. in WAIT method before semaDOWN on wait status is 1\n\n");
+    sema_down( &(child_t->wait_sema_child) );
+    // else
+      // _exit(-1);
+    // printf("current \n");
   }
   else
+  {
     child_status = -1;
+    // printf("child tid errorrorororor \n\n");
+  }
 
 
   return child_status;
@@ -293,6 +335,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 {
   //creates stack
   struct thread *t = thread_current ();
+
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
@@ -322,6 +365,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+
+  
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -404,9 +449,20 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   success = true;
 
+  // t->executable_file = file;
+  // // printf("Before deny\n");
+  // if(t->success_code)
+  // {
+  //   // printf("Denying stufff\n");
+  //   file_deny_write(t->executable_file);
+  // }
+  // // file_deny_write(t->executable_file);
+ 
  done:
   /* We arrive here whether the load is successful or not. */
+  // printf("file close before (ERROR)\n");
   file_close (file);
+  // printf("file close after (ERROR)\n");
   return success;
 }
 

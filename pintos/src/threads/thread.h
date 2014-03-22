@@ -106,10 +106,12 @@ struct thread
                                          * will be set in exec()
                                          */
     struct thread *waiting_child;
-    
+    struct file *executable_file;
+
     struct lock mylock;
     struct lock wait_child_lock;
 
+    int success_code;
     int terminate_status;
     int wait_status;
     
