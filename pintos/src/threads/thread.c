@@ -228,6 +228,10 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  // if(strcmp(t->name, "main") != 0 && strcmp(t->name, "idle") !=0){
+  //   sema_down(&t->wait_syn);
+  // }
+
   return tid;
 }
 
@@ -494,11 +498,13 @@ init_thread (struct thread *t, const char *name, int priority)
   //Initialize semaphore
   sema_init ( &(t->wait_sema_child), 0);
   sema_init ( &(t->wait_sema_zombie), 0);
+  sema_init ( &(t->wait_syn), 0);
 
   //Initialize the list here
   t->file_descriptor_num = 2;
   list_init ( &(t->list_childThread) );
   list_init ( &(t->list_openfile) );
+
   
   list_push_back (&all_list, &t->allelem);
 }

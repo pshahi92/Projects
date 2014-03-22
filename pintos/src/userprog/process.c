@@ -102,9 +102,12 @@ start_process (void *file_name_)
     // current->success_code = 0;
     // printf("Start process SEMA UP FALSE\n");
     // sema_up( &current->parent->wait_sema_child);
-
+    // sema_up(&thread_current()->wait_syn);
+    // _exit(-1);
     thread_exit ();
   }
+
+  // sema_up(&thread_current()->wait_syn);
   // else
   // {
     // current->success_code = 1;
@@ -223,6 +226,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
 
+  if(cur->executable_file)
+    file_close(cur->executable_file);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -449,19 +454,20 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   success = true;
 
-  // t->executable_file = file;
+  t->executable_file = file;
+  file_deny_write(t->executable_file);
   // // printf("Before deny\n");
   // if(t->success_code)
   // {
   //   // printf("Denying stufff\n");
-  //   file_deny_write(t->executable_file);
   // }
   // // file_deny_write(t->executable_file);
  
  done:
   /* We arrive here whether the load is successful or not. */
   // printf("file close before (ERROR)\n");
-  file_close (file);
+  if(!success)
+    file_close (file);
   // printf("file close after (ERROR)\n");
   return success;
 }

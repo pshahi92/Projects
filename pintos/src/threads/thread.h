@@ -102,6 +102,7 @@ struct thread
 
     struct semaphore wait_sema_child;
     struct semaphore wait_sema_zombie;
+    struct semaphore wait_syn;
     struct thread *parent;              /* pointer to thread's parent
                                          * will be set in exec()
                                          */
