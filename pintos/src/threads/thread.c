@@ -214,6 +214,8 @@ thread_create (const char *name, int priority,
   kf->function = function;
   kf->aux = aux;
 
+  t->parent = thread_current();
+
   /* Stack frame for switch_entry(). */
   ef = alloc_frame (t, sizeof *ef);
   ef->eip = (void (*) (void)) kernel_thread;
@@ -323,7 +325,10 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+  if (thread_current()->parent != NULL)
+    thread_current ()->status = THREAD_ZOMBIE;
+  else  
+    thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
 }
@@ -497,8 +502,7 @@ init_thread (struct thread *t, const char *name, int priority)
     /*Added */
   //Initialize semaphore
   sema_init ( &(t->wait_sema_child), 0);
-  sema_init ( &(t->wait_sema_zombie), 0);
-  sema_init ( &(t->wait_syn), 0);
+  sema_init ( &(t->load_sema), 0);
 
   //Initialize the list here
   t->file_descriptor_num = 2;

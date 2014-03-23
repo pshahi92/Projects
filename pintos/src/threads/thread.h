@@ -12,7 +12,8 @@ enum thread_status
     THREAD_RUNNING,     /* Running thread. */
     THREAD_READY,       /* Not running but ready to run. */
     THREAD_BLOCKED,     /* Waiting for an event to trigger. */
-    THREAD_DYING        /* About to be destroyed. */
+    THREAD_DYING,        /* About to be destroyed. */
+    THREAD_ZOMBIE
   };
 
 /* Thread identifier type.
@@ -101,22 +102,16 @@ struct thread
     struct list_elem child_elem;       /* list of child elem */
 
     struct semaphore wait_sema_child;
-    struct semaphore wait_sema_zombie;
-    struct semaphore wait_syn;
+    struct semaphore load_sema;
     struct thread *parent;              /* pointer to thread's parent
                                          * will be set in exec()
                                          */
-    struct thread *waiting_child;
-    struct file *executable_file;
+    struct file *executable_file;       //keep track of rox file
 
-    struct lock mylock;
-    struct lock wait_child_lock;
-
-    int success_code;
-    int terminate_status;
-    int wait_status;
+    int success_code;                   //keep track of load status
+    int wait_status;                    //keep track of wait status
     
-    struct list list_openfile;            /* list of open files for a process */
+    struct list list_openfile;          /* list of open files for a process */
     int file_descriptor_num;
     uint32_t exit_status;
 
@@ -128,6 +123,7 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
 
 struct file_description
 {

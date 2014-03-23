@@ -42,6 +42,7 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+
   //everytime a thread is created start_process is called, which in turn calls load
   //thread create runs through start_process
 
@@ -52,19 +53,25 @@ process_execute (const char *file_name)
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   else{
-    // file_close(thread_current()->executable_file);
-    // if(filesys_open(file_name) == NULL)
-    //   return -1;
+
+    sema_down(&thread_current()->load_sema);
+    
+    if(thread_current()->success_code == 0)
+      _exit(thread_current()->tid);
     
     if(child_thread)
     {
-      // child_thread->exit_status = -1;
-      child_thread->parent = thread_current();
+      char executable_prog[128];
+      char file_name_duplicate[128];
+
+      memcpy(file_name_duplicate, file_name, strlen(file_name) + 1);
+      memcpy(executable_prog, file_name_duplicate, strlen(file_name) + 1);
+      strtok_r(executable_prog, " ", &file_name_duplicate);
+
+    if(filesys_open(executable_prog) == NULL)
+      return -1;
+
       list_push_back(&(thread_current()->list_childThread), &(child_thread->child_elem));
-    
-      // printf("SEMA DOWN AFTER THREAD CREATE before sema down\n\n\n");
-      // sema_down( &thread_current()->wait_sema_child );
-      // printf("SEMA DOWN AFTER THREAD CREATE AFTER sema down\n\n\n");
     }
     else
       return -1;
@@ -99,21 +106,8 @@ start_process (void *file_name_)
   
   if (!success)
   {
-    // current->success_code = 0;
-    // printf("Start process SEMA UP FALSE\n");
-    // sema_up( &current->parent->wait_sema_child);
-    // sema_up(&thread_current()->wait_syn);
-    // _exit(-1);
     thread_exit ();
   }
-
-  // sema_up(&thread_current()->wait_syn);
-  // else
-  // {
-    // current->success_code = 1;
-    // printf("Start process SEMA UP TRUE\n");
-    // sema_up( &current->parent->wait_sema_child);
-  // }
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -184,35 +178,20 @@ if (child_tid == TID_ERROR)
     /* since we have found our child thread, we wait on the semaphore to wait
      * for the child process to finish
      */
+    
+    //has waited =)
+    if(current->wait_status){
+      return -1;
+    }
 
-    ASSERT (current != NULL);
-    // if(current->parent->tid != child_t->tid)
-    current->wait_status = 1;
-    // printf("0. in WAIT method before semadown on sema child wait status is 1\n\n");
     sema_down( &(child_t->wait_sema_child) );
-    
-    
-    // printf("Thisss is the sema down of current child semaphore contained\n");
     child_status = child_t->exit_status;
+    list_remove( &child_t->child_elem );
 
-    ASSERT (current != NULL);
-    // if(current->parent->tid == child_t->tid)
-    // printf("1. in WAIT method before semaUP on sema zombie wait status is 1\n\n");
-    sema_up( &(child_t->wait_sema_zombie) );
-    // printf("Thisss is the sema down of zombies by current thread \n");
-
-    ASSERT (current != NULL);
-    // if(current->parent->tid != child_t->tid)
-    // printf("2. in WAIT method before semaDOWN on wait status is 1\n\n");
-    sema_down( &(child_t->wait_sema_child) );
-    // else
-      // _exit(-1);
-    // printf("current \n");
   }
   else
   {
     child_status = -1;
-    // printf("child tid errorrorororor \n\n");
   }
 
 
@@ -456,19 +435,19 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   t->executable_file = file;
   file_deny_write(t->executable_file);
-  // // printf("Before deny\n");
-  // if(t->success_code)
-  // {
-  //   // printf("Denying stufff\n");
-  // }
-  // // file_deny_write(t->executable_file);
  
  done:
   /* We arrive here whether the load is successful or not. */
   // printf("file close before (ERROR)\n");
   if(!success)
     file_close (file);
-  // printf("file close after (ERROR)\n");
+
+  if(thread_current()->parent != NULL)
+  {
+    thread_current()->parent->success_code = 1;
+    sema_up(&thread_current()->parent->load_sema);
+  }
+
   return success;
 }
 

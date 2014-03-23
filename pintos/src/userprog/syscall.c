@@ -217,8 +217,6 @@ syscall_handler (struct intr_frame *f UNUSED)
       break;
     }
   }
-
-  // thread_exit ();
 }
 
 
@@ -232,55 +230,13 @@ static void _halt(void)
 void _exit(int status)
 {
   struct thread *current = thread_current();
-  // struct thread *child_t;
-
-  // struct list_elem *mov;
-
-  /* traversing our child thread list */
-  // for( mov = list_begin( &(current->list_childThread) );
-  //      mov != list_end( &(current->list_childThread) );
-  //      mov = list_next( mov ) )
-  // {
-  //    getting the thread from the list element
-  //   child_t = list_entry (mov, struct thread, child_elem);
-    
-  //   /* checking tid */
-  //   if(child_t->tid == child_t->parent->tid)
-  //     break;
-
-  // }
-
-  // if( mov == list_end( &(current->list_childThread) ) )
-  //   if(child_t->tid != child_t->parent->tid)
-  //     return;
-
-  // ASSERT (child_t != NULL)
-
-  current->exit_status = status;
-
-  if(current->parent->wait_status)
-  {
-    list_remove( &current->child_elem );
-
-    //Sema up
-    // printf("0. in exit method before semaup on sema child wait status is 1\n\n");
-    sema_up( &(current->wait_sema_child) );
-    
-    // printf("1. in exit method before semadown on sema zombie wait status is 1\n\n");
-    sema_down(  &(current->wait_sema_zombie) );
-    
-    // printf("2. in exit method before semaup on sema child wait status is 1\n\n");
-    sema_up( &(current->wait_sema_child) );
-    
-    current->parent->wait_status = 0;
-  }
-
-  // printf("Executable file trying to close GG.com \n\n");
   
-  // if(current->executable_file)
-  //   file_close( current->executable_file );
-
-  // printf("Executable file trying to close GG.com AFTER GG\n\n");
+  current->exit_status = status;
+    
+  // printf("2. in exit method before semaup on sema child wait status is 1         %s\n\n", &current->name);
+  sema_up( &(current->wait_sema_child) );
+    
+  current->wait_status = 0;
   
   printf ("%s: exit(%d)\n", current->name, current->exit_status);
   
@@ -343,32 +299,9 @@ static int _write(int fd, const void *buffer, off_t size)
   if ( !safe_esp(buffer) )
     return -1;
 
-  if ( fd == 1 ){
-      
-      putbuf(buffer, size);
-      
-      // if (size < max_buffer)
-      // {
-      //   return size;
-      // }
-      // else
-      // {
-      //   int offset = 0;
-        
-      //   while (size > max_buffer)
-      //   {
-      //     putbuf (buffer +, max_buffer);
-      //     offset += max_buffer;
-      //     size -= max_buffer;
-      //   }
-
-      //   putbuf (buffer, size);
-      //   offset += size;
-      //   return offset;
-      // }
-
-      return 0;
-
+  if ( fd == 1 ){   
+    putbuf(buffer, size); 
+    return 0;
   }
   else
   {
@@ -377,10 +310,8 @@ static int _write(int fd, const void *buffer, off_t size)
 
     if(file)
     {
-      // file_deny_write(current->executable_file);
       size = file_write (file, buffer, size);
     }
-    
 
     return size;
   }
@@ -396,7 +327,8 @@ static void _open(const char *file, struct intr_frame *f UNUSED)
 
   struct file * open_file;
   struct file_description * fd_obj;
-  // fd_obj = (struct file_description*) malloc (sizeof(struct file_description));
+
+  //Have to free
   fd_obj = palloc_get_page(0);
 
   open_file = filesys_open (file);
