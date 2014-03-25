@@ -7,6 +7,15 @@
 * [userprog](https://github.com/pshahi92/Projects/tree/master/pintos/src/userprog)
 * [threads](https://github.com/pshahi92/Projects/tree/master/pintos/src/threads)
 
+## Project 3: Virtual Memory
+[Project page] (http://www.cs.utexas.edu/~ans/classes/cs439/projects/pintos/WWW/pintos_4.html) <br>
+**Objectives:** Understanding paging, page replacement, and other virtual memory concepts. <br>
+**Due:** April 11 <br>
+**Relative Weight:** 25 <br>
+make turnin_vm (in src directory) <br>
+*turnin --submit ccoleman vm_design.txt* <br>
+**Partners:** <br>
+
 
 ## Project 2: User Programs
 [Project page](http://www.cs.utexas.edu/~ans/classes/cs439/projects/pintos/WWW/pintos_3.html) <br>
