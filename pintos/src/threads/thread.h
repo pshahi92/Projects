@@ -132,16 +132,6 @@ struct file_description
   int assigned_fd;
 };
 
-// struct child_struct {
-//   struct list_elem child_elem;
-//   struct thread * childThread;
-
-//   tid_t child_id;
-  
-//   int exit_or_not;
-//   int exit_status;
-//   int waiting_or_not;
-// };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

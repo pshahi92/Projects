@@ -30,6 +30,7 @@ static void *parseline (void *esp, const char *file_name); //parsing the command
 tid_t
 process_execute (const char *file_name) 
 {
+  //Kim driving
   char *fn_copy;
   tid_t tid;
 
@@ -49,7 +50,7 @@ process_execute (const char *file_name)
   struct thread * child_thread;
   child_thread = search_thread_tid(tid);
 
-  
+  //Eros driving
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);
   else{
@@ -134,9 +135,6 @@ process_wait (tid_t child_tid UNUSED)
   //Prithvi driving
   //implementing infinite loop (that waits forever)
   //Pintos will hang forever but we will get to see output from child processes
-  // while(1){
-  //   ;
-  // }
 if (child_tid == TID_ERROR)
     return TID_ERROR;
 
@@ -183,11 +181,13 @@ if (child_tid == TID_ERROR)
     if(current->wait_status){
       return -1;
     }
-
+    //having the current parent thread wait on the child thread until
+    //the child finishes execution
     sema_down( &(child_t->wait_sema_child) );
+        //updating the child's exit status
     child_status = child_t->exit_status;
+        //the child is now done so we can remove from the list
     list_remove( &child_t->child_elem );
-
   }
   else
   {
@@ -444,6 +444,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   if(thread_current()->parent != NULL)
   {
+        /* this is to solve the race condition on exec missing
+    we need to wake up the parent thread which has been waiting on the
+    child to finish loading*/
     thread_current()->parent->success_code = 1;
     sema_up(&thread_current()->parent->load_sema);
   }
@@ -489,6 +492,7 @@ void *parseline (void *esp, const char *file_name)
     // printf("Other argument i :  _----->            %s\n", str_arg, numArgument);
   }
 
+  //Kim driving
   //push word align
   uint8_t memPadding = ((unsigned int ) esp ) % 4;
   esp -= memPadding;

@@ -42,7 +42,8 @@ syscall_init (void)
   lock_init(&lockFile);
 }
 
-//To validate a pointer is pointing to a legal user mem address before dereferencing it
+//To validate a pointer is pointing to a legal 
+//user mem address before dereferencing it
 static int
 safe_esp (const void *pointer)
 {
@@ -74,15 +75,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 
   if( safe_esp(pointer) )
   {
-
     sys_num = *((int*)pointer); 
 
     switch(sys_num)
     {
+      //kim driving
       case SYS_HALT:
-        _halt();                                 /* Halt the operating system. */
+        _halt();                            /* Halt the operating system. */
       break;                   
       
+      //prithvi driving
       case SYS_EXIT:
         if( !safe_esp(pointer + 1) )
           return;
@@ -92,6 +94,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         _exit( status );
       break;
       
+      //eros driving
       case SYS_EXEC:                   /* Start another process. */
         if( !safe_esp(pointer + 1) ){
           return;
@@ -101,6 +104,7 @@ syscall_handler (struct intr_frame *f UNUSED)
         _exec(cmd_line, f);
       break;
 
+      //abraham driving
       case SYS_WAIT:                   /* Wait for a child process to die. */
         if( !safe_esp(pointer + 1) )
           return;
@@ -109,8 +113,11 @@ syscall_handler (struct intr_frame *f UNUSED)
         _wait(pid, f); 
       break;
 
+      //prithvi driving
       case SYS_CREATE:
 
+      /* all these locks are to make sure we are safely accessing the pointers
+      Kim driving */
       if( !safe_esp(pointer + 1) || !safe_esp(pointer + 2) )
           return;
 
@@ -135,6 +142,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       lock_release(&lockFile);
       break;
       
+      //Eros driving
       case SYS_OPEN:
       if( !safe_esp(pointer + 1) )
           return;
@@ -159,6 +167,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       lock_release(&lockFile);
       break;                  
 
+      //Prithvi driving
       case SYS_READ:
       if( !safe_esp(pointer + 1) || !safe_esp(pointer + 2) || !safe_esp(pointer + 3))
           return;
@@ -184,6 +193,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       if( !safe_esp(pointer + 1) || !safe_esp(pointer + 2) )
           return;
 
+      //Kim driving
       lock_acquire(&lockFile); 
 
       fd = *( pointer + 1 );
@@ -205,6 +215,7 @@ syscall_handler (struct intr_frame *f UNUSED)
       if( !safe_esp(pointer + 1) )
           return;
 
+      //Abraham driving
       lock_acquire(&lockFile); 
 
       fd = *( pointer + 1 );
@@ -226,14 +237,19 @@ static void _halt(void)
   //should be seldom used: lose some info about possible deadlock situtations
   shutdown_power_off();
 }
-
+/*
+Terminates the current user program, returning status to the kernel. 
+If the process's parent waits for it (see below), this is the status that will 
+be returned. Conventionally, a status of 0 indicates success and nonzero values 
+indicate errors.
+*/
 void _exit(int status)
 {
+    //Eros driving
   struct thread *current = thread_current();
   
   current->exit_status = status;
     
-  // printf("2. in exit method before semaup on sema child wait status is 1         %s\n\n", &current->name);
   sema_up( &(current->wait_sema_child) );
     
   current->wait_status = 0;
@@ -243,12 +259,20 @@ void _exit(int status)
   thread_exit();
 }
 
-
+/*
+Reads size bytes from the file open as fd into buffer. Returns the number of 
+bytes actually read (0 at end of file), or -1 if the file could not be read 
+(due to a condition other than end of file). fd 0 reads from the keyboard using 
+input_getc().
+*/
 static int _read(int fd, void *buffer, unsigned size)
 {
+    //Abraham driving
+
   struct thread * current = thread_current();
   struct file * file;
 
+  //checking for bad pointer
   if (!safe_esp(buffer))
     return -1;
 
@@ -281,10 +305,23 @@ static int _read(int fd, void *buffer, unsigned size)
   return -1;
 }
 
+/*
+Writes size bytes from buffer to the open file fd. Returns the number of bytes 
+actually written, which may be less than size if some bytes could not be written.
+Writing past end-of-file would normally extend the file, but file growth is not 
+implemented by the basic file system. The expected behavior is to write as many 
+bytes as possible up to end-of-file and return the actual number written, or 0 
+if no bytes could be written at all.
 
+fd 1 writes to the console. Your code to write to the console should write all 
+of buffer in one call to putbuf(), at least as long as size is not bigger than a
+few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, 
+lines of text output by different processes may end up interleaved on the 
+console, confusing both human readers and our grading scripts.
+*/
 static int _write(int fd, const void *buffer, off_t size)
 {
-  // struct file * file = current->open_files[fd];
+  //Prithvi driving
   struct thread * current = thread_current();
   struct file * file;
   int max_buffer = 100;
@@ -293,6 +330,7 @@ static int _write(int fd, const void *buffer, off_t size)
   if (fd == STDIN_FILENO)
     return -1;
 
+  //check for bad pointer
   if (!safe_esp(buffer + size))
     return -1;
 
@@ -318,49 +356,76 @@ static int _write(int fd, const void *buffer, off_t size)
 
 }
 
+/*
+Opens the file called file. Returns a nonnegative integer handle called a 
+"file descriptor" (fd) or -1 if the file could not be opened.
+File descriptors numbered 0 and 1 are reserved for the console: 
+fd 0 (STDIN_FILENO) is standard input, fd 1 (STDOUT_FILENO) is standard output. 
+The open system call will never return either of these file descriptors, which 
+are valid as system call arguments only as explicitly described below.
 
+Each process has an independent set of file descriptors. File descriptors are 
+not inherited by child processes.
+
+When a single file is opened more than once, whether by a single process or 
+different processes, each open returns a new file descriptor. Different file 
+descriptors for a single file are closed independently in separate calls to 
+close and they do not share a file position.
+*/
 static void _open(const char *file, struct intr_frame *f UNUSED)
 {
 
   if(!safe_esp(file))
     return;
 
-  struct file * open_file;
-  struct file_description * fd_obj;
+  struct file * open_file; //new struct for the file we are opening
+  struct file_description * fd_obj; //creating a file description object
 
   //Have to free
+  //pallocing the page for fd obj
   fd_obj = palloc_get_page(0);
-
+  //opening the file 
   open_file = filesys_open (file);
   
-  if(open_file){
+  if(open_file) //checking the file is not null
+  {
     struct thread * current = thread_current();
-
-
     fd_obj->assigned_fd = current->file_descriptor_num ++;
-
+    //setting assigned_fd of fd_obj struct
     fd_obj->open_file = open_file;
-    
+    //this is the open file we want
     f->eax = fd_obj->assigned_fd;
-
+    //updated eax register
     list_push_back (&current->list_openfile, &fd_obj->elem_openfile);
+    //putting onto list  
+
   }
   else
     f->eax = -1;
 }
-
+/*
+Returns the size, in bytes, of the file open as fd.
+*/
 static void _filesize(int fd, struct intr_frame *f UNUSED) 
 {
-
+  //Abraham driving
   struct thread * current = thread_current();
   struct file * file;
   file = search_file(current, fd);
 
   f->eax = file_length (file); 
 }
-
+/*
+Runs the executable whose name is given in cmd_line, passing any given arguments
+, and returns the new process's program id (pid). Must return pid -1, 
+which otherwise should not be a valid pid, if the program cannot load or run 
+for any reason. Thus, the parent process cannot return from the exec until it 
+knows whether the child process successfully loaded its executable. You must 
+use appropriate synchronization to ensure this.
+*/
 static void _exec(const char *cmd_line, struct intr_frame *f UNUSED)
 {
+    //Abraham driving
   f->eax = process_execute(cmd_line);
 }
 
@@ -368,13 +433,19 @@ static void _exec(const char *cmd_line, struct intr_frame *f UNUSED)
  */
 static void _wait(pid_t pid, struct intr_frame *f UNUSED)
 {
-   
+      //Eros driving
+
    f->eax = process_wait(pid);
 }
-
+/*
+Creates a new file called file initially initial_size bytes in size. Returns 
+true if successful, false otherwise. Creating a new file does not open it: 
+opening the new file is a separate operation which would require a open system 
+call.
+*/
 static void _create(const char *file, unsigned initial_size, struct intr_frame *f UNUSED)
 {
-
+  //Eros driving
   if(!safe_esp(file))
     return -1;
 
@@ -387,32 +458,55 @@ static void _create(const char *file, unsigned initial_size, struct intr_frame *
  */
 static void _remove(const char *file, struct intr_frame *f UNUSED)
 {
+  //kim driving
   if(!safe_esp(file))
     return;
 
   f->eax = filesys_remove(file); 
 }
 
+/*
+Changes the next byte to be read or written in open file fd to position, 
+expressed in bytes from the beginning of the file. (Thus, a position of 0 is the
+file's start.)
+A seek past the current end of a file is not an error. A later read obtains 0 
+bytes, indicating end of file. A later write extends the file, filling any 
+unwritten gap with zeros. (However, in Pintos, files will have a fixed length 
+until project 4 is complete, so writes past end of file will return an error.) 
+These semantics are implemented in the file system and do not require any 
+special effort in system call implementation.
+*/
 static void _seek(int fd, unsigned position, struct intr_frame *f UNUSED) 
 {
+    //Eros driving
   struct thread * current = thread_current();
   struct file * file;
   file = search_file(current, fd);
   
   file_seek (file, position);
 }
-
+/*
+Returns the position of the next byte to be read or written in open file fd, 
+expressed in bytes from the beginning of the file.
+*/
 static void _tell(int fd, struct intr_frame *f UNUSED) 
 {
+    //Eros driving
+
   struct thread * current = thread_current();
   struct file * file;
   file = search_file(current, fd);
 
   f->eax = file_tell (file);
 }
-
+/*
+Closes file descriptor fd. Exiting or terminating a process implicitly closes 
+all its open file descriptors, as if by calling this function for each one.
+*/
 static void _close(int fd)
 {
+    //Eros driving
+
   struct thread * current = thread_current();
   struct list_elem * node ;
   struct file_description * fd_obj;
@@ -422,7 +516,6 @@ static void _close(int fd)
         node != list_end (&(current->list_openfile) ); 
         node = list_next(node) )
   {
-       // file = list_entry (node, struct thread, elem_openfile);
       fd_obj = list_entry (node, struct file_description, elem_openfile);
 
        if(fd_obj->assigned_fd == fd){
@@ -436,7 +529,12 @@ static void _close(int fd)
 
 }
 
-static struct file* search_file (struct thread * this, int fd){
+/* This method is the search method we use to search for our file in file list
+need to use this because we use a list data structure rather than an array
+*/
+static struct file* search_file (struct thread * this, int fd)
+{
+  //Kim driving
 
   struct file_description * fd_obj;
   struct list_elem * node ;
@@ -445,7 +543,6 @@ static struct file* search_file (struct thread * this, int fd){
         node != list_end (&(this->list_openfile) ); 
         node = list_next(node) )
   {
-       // file = list_entry (node, struct thread, elem_openfile);
       fd_obj = list_entry (node, struct file_description, elem_openfile);
 
        if(fd_obj->assigned_fd == fd)
